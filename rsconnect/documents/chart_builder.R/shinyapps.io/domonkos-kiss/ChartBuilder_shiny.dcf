@@ -1,0 +1,12 @@
+name: ChartBuilder_shiny
+title: ChartBuilder_shiny
+username:
+account: domonkos-kiss
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3007656
+bundleId: 3736498
+url: https://domonkos-kiss.shinyapps.io/ChartBuilder_shiny/
+when: 1602622417.21939
+asMultiple: FALSE
+asStatic: FALSE
