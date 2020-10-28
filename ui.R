@@ -1,9 +1,31 @@
+install.packages("shinythemes")
+install.packages("plotly")
+
 library(shiny)
 library(dplyr)
 library(ggplot2)
+library(dbplyr)
 #install.packages("shinythemes")
 #install.packages("plotly")
 #extrafont::font_import()
+#library(odbc)
+#connection letrehozasa az sql szererrel
+#con <- dbConnect(odbc(),
+ #                Driver = "SQL Server",
+  #               Server = "projectbamosz2.database.windows.net",
+   #              Database = "project_bamosz",
+    #             UID = "backend.datavis",
+     #            PWD = "Vizsla123",
+      #           Port = 1433)
+
+#categories_df<- tbl(con, sql("SELECT * FROM dbo.categories_final")) %>% as_tibble() 
+#currency_df<- tbl(con, sql("SELECT * FROM dbo.currency_final")) %>% as_tibble() 
+#dates_df<- tbl(con, sql("SELECT * FROM dbo.dates_final")) %>% as_tibble() 
+#timeseries_df<- tbl(con, sql("SELECT * FROM dbo.timeseries_final")) %>% as_tibble()
+
+#aktiv alapokra szûrés
+#aktiv_isin <- categories_df %>% filter(STATUSZ=="Aktív") %>% select(ISIN_KOD) %>% unique()
+#timeseries_active <- timeseries_df %>% filter(ISIN_KOD %in% aktiv_isin)
 
 #import_data
 alapok_df<- read.csv("C:/Users/Domonkos/Desktop/bamosz/data_shiny.csv", encoding="UTF-8", stringsAsFactors=FALSE)
@@ -132,60 +154,6 @@ ui <- fluidPage(
     )))
 
 
-# server ################################
-server <- function(input, output, session){
- #default cím megadása
-  observe({
-    type <- input$categoryselect
-    default_title <-
-      ifelse(input$categoryselect=="Datum",
-      paste(input$valueselect,
-            "változása"), paste(input$valueselect,
-                                        "megoszlása", input$categoryselect, "szerint"))
-    updateTextInput(session, "AbraCime", value = default_title)
-    output$plot <- renderPlot({
-      plot(1:10, main = default_title, type = input$type)
-    })
-  })
-  
-  
-  
- # updateSelectizeInput(session, 'AlapNeve', choices = alapok_df$ALAP_NEVE, server = TRUE)
-  #fuggveny az arfolyam plothoz
-  plot_alapok_arfolyama <-
-    function(chart_tipus = geom_line(),
-             kivalasztott_ertek = input$valueselect, kategoria=input$categoryselect) {
-      alapok_df %>%
-        filter(ALAP_NEVE %in% input$AlapNeve) %>%
-        #azert kell get, mert igy adja vissza azt az oszlopot, amit nevben megadtunk
-        ggplot(aes(x = get(kategoria), y = get(kivalasztott_ertek), fill=ALAP_NEVE)) +
-        chart_tipus + ggtitle(input$AbraCime) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_rect(fill = input$col), plot.title = element_text(size =
-                                                                                  input$Cimsize, family = input$betutipus))
-    }
-  #arfolyam output
-  output$Alap_arfolyama_plot <- plotly::renderPlotly({
-    plot_alapok_arfolyama(geom_line())
-  })
-  #tablazat output
-  output$Alap_arfolyama_table <- DT::renderDT({
-    alapok_df %>% 
-      filter(ALAP_NEVE == input$AlapNeve)
-  })
-  #scatter output
-  output$Alap_arfolyama_Scatterplot <- plotly::renderPlotly({
-    plot_alapok_arfolyama(geom_point())
-  })
-  
-  #barchart output
-  output$Alap_arfolyama_colplot <- plotly::renderPlotly({
-    plot_alapok_arfolyama(geom_col())
-  })
-  #area output
-  output$Alap_arfolyama_areaplot <- plotly::renderPlotly({
-    plot_alapok_arfolyama(geom_area())
-  })
-  
-  
-}
+
 shinyApp(ui = ui, server = server)
 
