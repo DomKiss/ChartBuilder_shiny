@@ -1,6 +1,7 @@
 #install.packages("shinythemes")
 #install.packages("plotly")
 
+library(shinythemes)
 library(shiny)
 library(dplyr)
 library(ggplot2)
@@ -79,6 +80,20 @@ ui <- fluidPage(
       ),
       conditionalPanel(
         condition = "input.formazas == 'Egyedi'",
+        column(
+          2,
+          actionButton(inputId = "generalButton", label = "Színpaletta"),
+          conditionalPanel(
+            condition = ("input.generalButton%2!=0"),
+            colourpicker::colourInput("col", "Háttér szín", value = "grey"),
+            textInput(
+              'AbraCime',
+              'Cím megadása:',
+              value="Cím megadása"
+            ),
+            numericInput("Cimsize", "Cím mérete:", "22")
+          )
+        ),
         column(
           2,
           actionButton(inputId = "generalButton", label = "?ltal?nos"),
