@@ -1,5 +1,5 @@
-install.packages("shinythemes")
-install.packages("plotly")
+#install.packages("shinythemes")
+#install.packages("plotly")
 
 library(shiny)
 library(dplyr)
@@ -8,7 +8,7 @@ library(dbplyr)
 #install.packages("shinythemes")
 #install.packages("plotly")
 #extrafont::font_import()
-#library(odbc)
+library(odbc)
 #connection letrehozasa az sql szererrel
 #con <- dbConnect(odbc(),
  #                Driver = "SQL Server",
@@ -17,18 +17,18 @@ library(dbplyr)
     #             UID = "backend.datavis",
      #            PWD = "Vizsla123",
       #           Port = 1433)
-
+#dateframe-be berakom a beimportalt tablakat
 #categories_df<- tbl(con, sql("SELECT * FROM dbo.categories_final")) %>% as_tibble() 
 #currency_df<- tbl(con, sql("SELECT * FROM dbo.currency_final")) %>% as_tibble() 
 #dates_df<- tbl(con, sql("SELECT * FROM dbo.dates_final")) %>% as_tibble() 
 #timeseries_df<- tbl(con, sql("SELECT * FROM dbo.timeseries_final")) %>% as_tibble()
 
-#aktiv alapokra szûrés
-#aktiv_isin <- categories_df %>% filter(STATUSZ=="Aktív") %>% select(ISIN_KOD) %>% unique()
+#aktiv alapokra szures
+#aktiv_isin <- categories_df %>% filter(STATUSZ=="Akt?v") %>% select(ISIN_KOD) %>% unique()
 #timeseries_active <- timeseries_df %>% filter(ISIN_KOD %in% aktiv_isin)
 
 #import_data
-alapok_df<- read.csv("C:/Users/Domonkos/Desktop/bamosz/data_shiny.csv", encoding="UTF-8", stringsAsFactors=FALSE)
+alapok_df<- read.csv("~/ChartBuilder_shiny/data_shiny.csv", encoding="UTF-8", stringsAsFactors=FALSE)
 names(alapok_df)[1] <- "Datum"
 alapok_df$Datum <- alapok_df$Datum %>% as.Date
 alapok_df$EFF_HOZAM_1_EVES = readr::parse_number(alapok_df$EFF_HOZAM_1_EVES)/100
@@ -43,30 +43,26 @@ ui <- fluidPage(
       selectizeInput(
         'AlapNeve',
         'Alap neve',
-        choices = alapok_df$ALAP_NEVE,
-        selected = alapok_df$ALAP_NEVE[1],
+        choices = categories_df$ALAP_NEVE,
+        selected = categories_df$ALAP_NEVE[1],
         multiple = TRUE
       ),
-      shinythemes::themeSelector(),
+      #shinythemes::themeSelector(),
+      #ez az Ã©rtÃ©k szuro (milyen Ã©rtÃ©kek szerepeljenek a ggplot-on)
       selectInput(
         "valueselect",
-        "Érték kiválasztása",
+        "ertek kivalasztasa",
         selected = 'ARFOLYAM',
-        choices = c("ARFOLYAM", "EFF_HOZAM_1_EVES", "EFF_HOZAM_3_EVES")
+        choices = colnames(timeseries_df)
       ),
       
+      #ez a kategoria szuro (mi szerint rendezzen ggplot-on)
       selectInput(
         "categoryselect",
-        "Kategória kiválasztása",
+        "kategoria kivalasztasa",
         selected = 'Datum',
-        choices = c(
-          "Datum",
-          "ALAP_NEVE",
-          "ALAPKEZELO",
-          "EFF_HOZAM_3_EVES",
-          "BEFPOL_SZERINTI_KATEGORIA",
-          "ISIN_KOD"
-        )
+        #a felhasznalo kivalaszthatja a categories_df tablazat, osszes oszlopat, kiveve verzio, meg alapkezelo_rovidnev
+        choices = categories_df %>% select(!ALAPKEZELO_ROVIDNEV) %>% select(!VERZIO) %>% colnames
       ),
     ),
    
@@ -88,7 +84,7 @@ ui <- fluidPage(
       ),
       selectInput(
         "formazas",
-        "Formázás",
+        "FormÃ¡zÃ¡s",
         selected = 'Default',
         choices = c("Default", "Egyedi")
       ),
@@ -96,16 +92,16 @@ ui <- fluidPage(
         condition = "input.formazas == 'Egyedi'",
         column(
           2,
-          actionButton(inputId = "generalButton", label = "Általános"),
+          actionButton(inputId = "generalButton", label = "?ltal?nos"),
           conditionalPanel(
             condition = ("input.generalButton%2!=0"),
-            colourpicker::colourInput("col", "Háttérszín", value = "grey"),
+            colourpicker::colourInput("col", "HÃ¡ttÃ©r szÃ­n", value = "grey"),
             textInput(
               'AbraCime',
-              'Cím megadása:',
-              value="Cím megadása"
+              'CÃ­m megadÃ¡sa:',
+              value="CÃ­m megadÃ¡sa"
             ),
-            numericInput("Cimsize", "Cím mérete:", "22")
+            numericInput("Cimsize", "CÃ­m mÃ©rete:", "22")
           )
         ),
         column(
@@ -113,7 +109,7 @@ ui <- fluidPage(
           actionButton(inputId = "xButton", label = "X tengely"),conditionalPanel(condition = ("input.xButton%2!=0"),
           selectInput(
             "betutipus",
-            "Betûtípus",
+            "Bet?t?pus",
             selected = 'F',
             choices = c("Times", "Calibri", "Helvetica", "Open-Sans")
           ))
@@ -123,27 +119,27 @@ ui <- fluidPage(
           actionButton(inputId = "yButton", label = "Y tengely"),conditionalPanel(condition = ("input.yButton%2!=0"),
                                                                                   selectInput(
                                                                                     "betutipus",
-                                                                                    "Betûtípus",
+                                                                                    "Bet?t?pus",
                                                                                     selected = 'F',
                                                                                     choices = c("Times", "Calibri", "Helvetica")
                                                                                   ))
         ),
         column(
           2,
-          actionButton(inputId = "jelmagyButton", label = "Jelmagyarázat"),conditionalPanel(condition = ("input.jelmagyButton%2!=0"),
+          actionButton(inputId = "jelmagyButton", label = "JelmagyarÃ¡zat"),conditionalPanel(condition = ("input.jelmagyButton%2!=0"),
                                                                                   selectInput(
                                                                                     "betutipus",
-                                                                                    "Betûtípus",
+                                                                                    "Bet?t?pus",
                                                                                     selected = 'F',
                                                                                     choices = c("Times", "Calibri", "Helvetica")
                                                                                   ))
         ),
         column(
           2,
-          actionButton(inputId = "adatfelButton", label = "Adatfeliratok és színek"),conditionalPanel(condition = ("input.adatfelButton%2!=0"),
+          actionButton(inputId = "adatfelButton", label = "Adatfeliratok Ã©s szÃ­nek"),conditionalPanel(condition = ("input.adatfelButton%2!=0"),
                                                                                             selectInput(
                                                                                               "betutipus",
-                                                                                              "Betûtípus",
+                                                                                              "Bet?t?pus",
                                                                                               selected = 'F',
                                                                                               choices = c("Times", "Calibri", "Helvetica")
                                                                                             ))
