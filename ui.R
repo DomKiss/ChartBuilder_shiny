@@ -10,29 +10,18 @@ library(dbplyr)
 #extrafont::font_import()
 library(odbc)
 #connection letrehozasa az sql szererrel
-#con <- dbConnect(odbc(),
- #                Driver = "SQL Server",
-  #               Server = "projectbamosz2.database.windows.net",
-   #              Database = "project_bamosz",
-    #             UID = "backend.datavis",
-     #            PWD = "Vizsla123",
-      #           Port = 1433)
+con <- dbConnect(odbc(),
+                 Driver = "SQL Server",
+                 Server = "projectbamosz2.database.windows.net",
+                 Database = "project_bamosz",
+                 UID = "backend.datavis",
+                 PWD = "Vizsla123",
+                 Port = 1433)
 #dateframe-be berakom a beimportalt tablakat
-#categories_df<- tbl(con, sql("SELECT * FROM dbo.categories_final")) %>% as_tibble() 
-#currency_df<- tbl(con, sql("SELECT * FROM dbo.currency_final")) %>% as_tibble() 
-#dates_df<- tbl(con, sql("SELECT * FROM dbo.dates_final")) %>% as_tibble() 
-#timeseries_df<- tbl(con, sql("SELECT * FROM dbo.timeseries_final")) %>% as_tibble()
-
-#aktiv alapokra szures
-#aktiv_isin <- categories_df %>% filter(STATUSZ=="Akt?v") %>% select(ISIN_KOD) %>% unique()
-#timeseries_active <- timeseries_df %>% filter(ISIN_KOD %in% aktiv_isin)
-
-#import_data
-alapok_df<- read.csv("~/ChartBuilder_shiny/data_shiny.csv", encoding="UTF-8", stringsAsFactors=FALSE)
-names(alapok_df)[1] <- "Datum"
-alapok_df$Datum <- alapok_df$Datum %>% as.Date
-alapok_df$EFF_HOZAM_1_EVES = readr::parse_number(alapok_df$EFF_HOZAM_1_EVES)/100
-alapok_df$EFF_HOZAM_3_EVES = readr::parse_number(alapok_df$EFF_HOZAM_3_EVES)/100
+categories_df<- tbl(con, sql("SELECT * FROM dbo.categories_final")) %>% as_tibble() 
+currency_df<- tbl(con, sql("SELECT * FROM dbo.currency_final")) %>% as_tibble() 
+dates_df<- tbl(con, sql("SELECT * FROM dbo.dates_final")) %>% as_tibble() 
+timeseries_df<- tbl(con, sql("SELECT * FROM dbo.timeseries_final")) %>% as_tibble()
 
 
 #ui ######################################
@@ -47,7 +36,7 @@ ui <- fluidPage(
         selected = categories_df$ALAP_NEVE[1],
         multiple = TRUE
       ),
-      #shinythemes::themeSelector(),
+      shinythemes::themeSelector(),
       #ez az érték szuro (milyen értékek szerepeljenek a ggplot-on)
       selectInput(
         "valueselect",
