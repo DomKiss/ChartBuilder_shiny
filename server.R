@@ -43,6 +43,7 @@ server <- function(input, output, session){
   
   # updateSelectizeInput(session, 'AlapNeve', choices = alapok_df$ALAP_NEVE, server = TRUE)
   #fuggveny az arfolyam plothoz
+  
 
   plot_fuggveny <-
     function(chart_tipus = geom_line(), 
@@ -63,14 +64,25 @@ server <- function(input, output, session){
           fill = ALAP_NEVE
         )) +
         chart_tipus + 
-        ggtitle(input$AbraCime) +
+        
+        ggtitle(input$title_text) +
+        xlab(input$x_text) +
+        ylab(input$y_text) +
+        
         theme(
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
           panel.background = element_rect(fill = input$base_col),
-          plot.title = element_text(size = input$title_size, family = input$font_type)
-        )
-        # + scale_colour_manual(values =  
+          plot.title = element_text(size = input$title_size, 
+                                    family = input$font_type,
+                                    colour = input$title_color,
+                                    hjust = input$title_alignment),
+          axis.title.x = element_text(size = input$x_size, 
+                                      family = input$font_type,
+                                      colour = input$x_color,
+                                      hjust = input$x_alignment)
+        ) 
+        # scale_colour_manual(values =
         #                       c(
         #                       input$col_1,
         #                       input$col_2,
@@ -103,6 +115,20 @@ server <- function(input, output, session){
   output$Alap_arfolyama_areaplot <- plotly::renderPlotly({
     plot_fuggveny(geom_area())
   })
+  
+  
+  #misc
+  szumma_formazas_gombok <- 
+    reactive({ 
+        input$colButton +
+        input$generalButton +
+        input$cimButton +
+        input$xButton +
+        input$yButton +
+        input$jelmagyButton +
+        input$adatfelButton +
+    })
+  
 
   
 }
