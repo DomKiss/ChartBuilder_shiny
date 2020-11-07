@@ -3,7 +3,7 @@ library(dplyr)
 library(ggplot2)
 library(dbplyr)
 
-
+#
 # server ################################
 server <- function(input, output, session){
   #default cím megadása
