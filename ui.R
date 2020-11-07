@@ -24,18 +24,13 @@ dates_df<- tbl(con, sql("SELECT * FROM dbo.dates_final")) %>% as_tibble()
 timeseries_df<- tbl(con, sql("SELECT * FROM dbo.timeseries_final")) %>% as_tibble()
 
 
+
 #ui ######################################
 ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       #felteteles panelre kattintva nyissa csak meg a formazas inputokat
-      selectizeInput(
-        'AlapNeve',
-        'Alap neve',
-        choices = categories_df$ALAP_NEVE,
-        selected = categories_df$ALAP_NEVE[1],
-        multiple = TRUE
-      ),
+     
       shinythemes::themeSelector(),
       #ez az érték szuro (milyen értékek szerepeljenek a ggplot-on)
       selectInput(
@@ -53,6 +48,55 @@ ui <- fluidPage(
         #a felhasznalo kivalaszthatja a categories_df tablazat, osszes oszlopat, kiveve verzio, meg alapkezelo_rovidnev
         choices = categories_df %>% select(!ALAPKEZELO_ROVIDNEV) %>% select(!VERZIO) %>% colnames
       ),
+      selectizeInput(
+        'AlapNeve',
+        'Alap neve',
+        choices = categories_df$ALAP_NEVE,
+        selected = categories_df$ALAP_NEVE[1],
+        multiple = TRUE
+      ),
+      selectizeInput(
+        'ALAPKEZELO',
+        'Alapkezelő',
+        choices = categories_df$ALAPKEZELO,
+        selected = categories_df$ALAPKEZELO[1],
+        multiple = TRUE
+      ),
+      selectizeInput(
+        'LETETKEZELO',
+        'Letétkezelő',
+        choices = categories_df$LETETKEZELO,
+        selected = categories_df$LETETKEZELO[1],
+        multiple = TRUE
+      ),
+      selectizeInput(
+        'ALAPTIPUS',
+        'Alaptípus',
+        choices = categories_df$ALAPTIPUS,
+        selected = categories_df$ALAPTIPUS[1],
+        multiple = TRUE
+      ),
+      selectizeInput(
+        'ALAPFAJTA',
+        'Alapfajta',
+        choices = categories_df$ALAPFAJTA,
+        selected = categories_df$ALAPFAJTA[1],
+        multiple = TRUE
+      ),
+      selectizeInput(
+        'BEFPOL_SZERINTI_KATEGORIA',
+        'Befektetési politika',
+        choices = categories_df$BEFPOL_SZERINTI_KATEGORIA,
+        selected = categories_df$BEFPOL_SZERINTI_KATEGORIA[1],
+        multiple = TRUE
+      ),
+      
+      
+      
+      
+      
+      
+      
     ),
    
     
