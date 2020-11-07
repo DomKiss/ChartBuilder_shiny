@@ -3,7 +3,7 @@ library(dplyr)
 library(ggplot2)
 library(dbplyr)
 
-#
+
 # server ################################
 server <- function(input, output, session){
   #default cím megadása
@@ -19,6 +19,7 @@ server <- function(input, output, session){
       plot(1:10, main = default_title, type = input$type)
     })
   })
+  #AZOK AZ ISINEK, AMIKRE SZŰR UI-BAN A CATEGORIES-zal
   
   
   
@@ -28,8 +29,14 @@ server <- function(input, output, session){
     function(chart_tipus = geom_line(), 
              kivalasztott_ertek = input$valueselect,
              kategoria = input$categoryselect) {
-      alapok_df %>%
-        filter(ALAP_NEVE %in% input$AlapNeve) %>%
+      szurt_isinek <-
+        categories_df %>% filter(ALAP_NEVE %in% input$AlapNeve) %>% select(ISIN_KOD)
+      szurt_alapok <-
+        categories_df %>% filter(ALAP_NEVE %in% input$AlapNeve) %>% select(ALAP_NEVE, ISIN_KOD)
+      timeseries_df_szurt <- merge(timeseries_df, szurt_alapok, by.x="ISIN_KOD", by.y="ISIN_KOD")
+
+      timeseries_df_szurt %>%
+        filter(ISIN_KOD %in% szurt_isinek) %>%
         #azert kell get, mert igy adja vissza azt az oszlopot, amit nevben megadtunk
         ggplot(aes(
           x = get(kategoria),
