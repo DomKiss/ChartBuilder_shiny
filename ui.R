@@ -11,18 +11,19 @@ library(dbplyr)
 #extrafont::font_import()
 library(odbc)
 #connection letrehozasa az sql szererrel
-con <- dbConnect(odbc(),
-                 Driver = "SQL Server",
-                 Server = "projectbamosz2.database.windows.net",
-                 Database = "project_bamosz",
-                 UID = "backend.datavis",
-                 PWD = "Vizsla123",
-                 Port = 1433)
+#con <- dbConnect(odbc(),
+#                 Driver = "SQL Server",
+#                 Server = "projectbamosz2.database.windows.net",
+#                 Database = "project_bamosz",
+#                 UID = "backend.datavis",
+#                 PWD = "Vizsla123",
+#                 Port = 1433)
 #dateframe-be berakom a beimportalt tablakat
-categories_df<- tbl(con, sql("SELECT * FROM dbo.categories_final")) %>% as_tibble() 
-currency_df<- tbl(con, sql("SELECT * FROM dbo.currency_final")) %>% as_tibble() 
-dates_df<- tbl(con, sql("SELECT * FROM dbo.dates_final")) %>% as_tibble() 
-timeseries_df<- tbl(con, sql("SELECT * FROM dbo.timeseries_final")) %>% as_tibble()
+
+#categories_df<- tbl(con, sql("SELECT * FROM dbo.categories_final")) %>% as_tibble() 
+#currency_df<- tbl(con, sql("SELECT * FROM dbo.currency_final")) %>% as_tibble() 
+#dates_df<- tbl(con, sql("SELECT * FROM dbo.dates_final")) %>% as_tibble() 
+#timeseries_df<- tbl(con, sql("SELECT * FROM dbo.timeseries_final")) %>% as_tibble()
 
 
 
@@ -126,30 +127,43 @@ ui <- fluidPage(
         condition = "input.formazas == 'Egyedi'",
         column(
           2,
-          actionButton(inputId = "generalButton", label = "Színpaletta"),
+          actionButton(inputId = "colButton", label = "Színpaletta"),
           conditionalPanel(
-            condition = ("input.generalButton%2!=0"),
-            colourpicker::colourInput("col", "Háttér szín", value = "grey"),
-            textInput(
-              'AbraCime',
-              'Cím megadása:',
-              value="Cím megadása"
-            ),
-            numericInput("Cimsize", "Cím mérete:", "22")
+            condition = ("input.colButton%2!=0"),
+            colourpicker::colourInput("col_1", "Szín #1", value = "white"),
+            colourpicker::colourInput("col_2", "Szín #2", value = "white"),
+            colourpicker::colourInput("col_3", "Szín #3", value = "white"),
+            colourpicker::colourInput("col_4", "Szín #4", value = "white"),
+            colourpicker::colourInput("col_5", "Szín #5", value = "white"),
+            colourpicker::colourInput("col_6", "Szín #6", value = "white")
           )
         ),
         column(
           2,
-          actionButton(inputId = "generalButton", label = "?ltal?nos"),
+          actionButton(inputId = "generalButton", label = "Általános"),
           conditionalPanel(
             condition = ("input.generalButton%2!=0"),
-            colourpicker::colourInput("col", "Háttér szín", value = "grey"),
+            colourpicker::colourInput("base_col", "Háttér szín", value = "white"),
+            selectInput(
+              "font_type",
+              "Betűtípus",
+              selected = 'F',
+              choices = c("Times", "Calibri", "Helvetica", "Open-Sans")
+            )
+          )
+        ),
+        column(
+          2,
+          actionButton(inputId = "cimButton", label = "Cím"),
+          conditionalPanel(
+            condition = ("input.cimButton%2!=0"),
             textInput(
-              'AbraCime',
+              'title_text',
               'Cím megadása:',
               value="Cím megadása"
             ),
-            numericInput("Cimsize", "Cím mérete:", "22")
+            numericInput("title_size", "Cím mérete:", "22"),
+            colourpicker::colourInput("tytle_color", "Cím színe", value = "black")
           )
         ),
         column(

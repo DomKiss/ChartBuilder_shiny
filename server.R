@@ -25,6 +25,7 @@ server <- function(input, output, session){
   
   # updateSelectizeInput(session, 'AlapNeve', choices = alapok_df$ALAP_NEVE, server = TRUE)
   #fuggveny az arfolyam plothoz
+
   plot_fuggveny <-
     function(chart_tipus = geom_line(), 
              kivalasztott_ertek = input$valueselect,
@@ -43,13 +44,24 @@ server <- function(input, output, session){
           y = get(kivalasztott_ertek),
           fill = ALAP_NEVE
         )) +
-        chart_tipus + ggtitle(input$AbraCime) + theme(
+        chart_tipus + 
+        ggtitle(input$AbraCime) +
+        theme(
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank(),
-          panel.background = element_rect(fill = input$col),
-          plot.title = element_text(size =
-                                      input$Cimsize, family = input$betutipus)
+          panel.background = element_rect(fill = input$base_col),
+          plot.title = element_text(size = input$title_size, family = input$font_type)
         )
+        # + scale_colour_manual(values =  
+        #                       c(
+        #                       input$col_1,
+        #                       input$col_2,
+        #                       input$col_3,
+        #                       input$col_4,
+        #                       input$col_5,
+        #                       input$col_6
+        #                       )
+        # )
     }
   #arfolyam output
   output$Alap_arfolyama_plot <- plotly::renderPlotly({
@@ -73,6 +85,6 @@ server <- function(input, output, session){
   output$Alap_arfolyama_areaplot <- plotly::renderPlotly({
     plot_fuggveny(geom_area())
   })
-  
+
   
 }
