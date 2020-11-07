@@ -19,9 +19,27 @@ server <- function(input, output, session){
       plot(1:10, main = default_title, type = input$type)
     })
   })
-  #AZOK AZ ISINEK, AMIKRE SZŰR UI-BAN A CATEGORIES-zal
   
+  #server oldali szurok
+  output$AlapNeveout = renderUI({
+    selectInput(inputId = "AlapNeve",
+                label = "AlapNeve:", 
+                choices = as.character(unique(categories_df$ALAP_NEVE)),
+                selected = "Aberdeen Diversified Growth Alapok Alapja 'B'")
+  })
   
+  datasub <- reactive({
+    categories_df[categories_df$ALAP_NEVE == input$AlapNeve,]
+  })
+  
+  output$Alapkezeloout = renderUI({
+    selectInput(inputId = "Alapkezelo", 
+                label = "Alapkezelő:", 
+                choices = unique(datasub()[,"ALAPKEZELO"]),
+                selected = unique(datasub()[,"ALAPKEZELO"])[1])
+  })
+  
+ 
   
   # updateSelectizeInput(session, 'AlapNeve', choices = alapok_df$ALAP_NEVE, server = TRUE)
   #fuggveny az arfolyam plothoz
@@ -34,10 +52,10 @@ server <- function(input, output, session){
         categories_df %>% filter(ALAP_NEVE %in% input$AlapNeve) %>% select(ISIN_KOD)
       szurt_alapok <-
         categories_df %>% filter(ALAP_NEVE %in% input$AlapNeve) %>% select(ALAP_NEVE, ISIN_KOD)
-      timeseries_df_szurt <- merge(timeseries_df, szurt_alapok, by.x="ISIN_KOD", by.y="ISIN_KOD")
+      timeseries_df_merged <- merge(timeseries_df, szurt_alapok, by.x="ISIN_KOD", by.y="ISIN_KOD")
 
-      timeseries_df_szurt %>%
-        filter(ISIN_KOD %in% szurt_isinek) %>%
+      timeseries_df_merged %>%
+        filter(ISIN_KOD %in% szurt_isinek$ISIN_KOD) %>%
         #azert kell get, mert igy adja vissza azt az oszlopot, amit nevben megadtunk
         ggplot(aes(
           x = get(kategoria),
