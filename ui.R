@@ -18,7 +18,7 @@ con <- dbConnect(odbc(),
                  PWD = "Vizsla123",
                  Port = 1433)
 #dateframe-be berakom a beimportalt tablakat
-categories_df<- tbl(con, sql("SELECT * FROM dbo.categories_final")) %>% as_tibble() 
+categories_df<- tbl(con, sql("SELECT * FROM dbo.categories_final")) %>% as_data_frame()
 currency_df<- tbl(con, sql("SELECT * FROM dbo.currency_final")) %>% as_tibble() 
 dates_df<- tbl(con, sql("SELECT * FROM dbo.dates_final")) %>% as_tibble() 
 timeseries_df<- tbl(con, sql("SELECT * FROM dbo.timeseries_final")) %>% as_tibble()
@@ -29,6 +29,8 @@ timeseries_df<- tbl(con, sql("SELECT * FROM dbo.timeseries_final")) %>% as_tibbl
 ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
+      
+      
       #felteteles panelre kattintva nyissa csak meg a formazas inputokat
      
       shinythemes::themeSelector(),
@@ -48,13 +50,13 @@ ui <- fluidPage(
         #a felhasznalo kivalaszthatja a categories_df tablazat, osszes oszlopat, kiveve verzio, meg alapkezelo_rovidnev
         choices = categories_df %>% select(!ALAPKEZELO_ROVIDNEV) %>% select(!VERZIO) %>% colnames
       ),
-      uiOutput("AlapNeveout"),
-      uiOutput("Alapkezeloout"),
-
+      uiOutput("alapkezelo"),
+      uiOutput("alapneve"),
+      uiOutput("letetkezelo")
+      
     
     ),
    
-    
     mainPanel(
       # egy panelbe rakom line chartot, table-t (felso savon lehet valtani)
       tabsetPanel(
