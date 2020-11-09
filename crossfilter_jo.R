@@ -1,6 +1,7 @@
 library(shiny)
 library(shinyWidgets)
-
+library(dplyr)
+library(ggplot2)
 
 data("mpg", package = "ggplot2")
 
@@ -27,6 +28,12 @@ ui <- fluidPage(fluidRow(
       multiple = FALSE,
       selected = "NETTO_ESZKOZERTEK"
     ),
+    selectInput("osszegzofv", "Összegző függvény", c("mean", "sum", "count", "max", "min")),
+    
+    
+    
+    
+    
     panel(
       selectizeGroupUI(
         id = "my-filters",
@@ -53,7 +60,7 @@ ui <- fluidPage(fluidRow(
     
   ),
   
-  column(width = 8, dataTableOutput(outputId = "table"))
+    column(width=4, DT::DTOutput("tabletab"), plotly::plotlyOutput('Alap_arfolyama_plot'))
   
 ))
 
@@ -99,16 +106,43 @@ react_selected <- reactive({
 })
   
 #mergelem a lekerdezett reactive time-series df valtozot a categories-zal
-  output$table <-
-    renderDataTable(merge(
+  output$tabletab <-
+    DT::renderDT(merge(
       res_mod() %>% select(ISIN_KOD,!!!input$kategoriavalaszt),
       react_selected(),
       by.x = "ISIN_KOD",
       by.y = "ISIN_KOD"
     ) %>% select(!ISIN_KOD))
   
-
- 
+  
+  plot_fuggveny <-
+    function(chart_tipus = "bar", 
+             kivalasztott_ertek = input$valuevalaszt,
+             kategoria = input$kategoriavalaszt) {
+      abra_df <- merge(
+        res_mod() %>% select(ISIN_KOD,!!!input$kategoriavalaszt),
+        react_selected(),
+        by.x = "ISIN_KOD",
+        by.y = "ISIN_KOD"
+      ) %>% select(!ISIN_KOD)
+      merged_colnames <- colnames(abra_df)
+      
+      
+      
+        #azert kell get, mert igy adja vissza azt az oszlopot, amit nevben megadtunk
+      # ggplot(abra_df)+stat_summary(aes(x=get(merged_colnames[1]), y=get(merged_colnames[2])), fun.y=mean, 
+      #                              geom = paste0(chart_tipus))
+      
+      ggplot(data = abra_df, aes(x = get(merged_colnames[1]), y = get(merged_colnames[2])))  +  
+        stat_summary(fun=input$osszegzofv, geom="bar")
+    }
+  
+  #area output
+  output$Alap_arfolyama_plot <- plotly::renderPlotly({
+    plot_fuggveny(geom_col())
+  })
+  
+  
   
 }
 
