@@ -1,6 +1,7 @@
 #install.packages("shinythemes")
 #install.packages("plotly")
 
+library(shinythemes)
 library(shiny)
 library(dplyr)
 library(ggplot2)
@@ -10,18 +11,26 @@ library(dbplyr)
 #extrafont::font_import()
 library(odbc)
 #connection letrehozasa az sql szererrel
-con <- dbConnect(odbc(),
-                 Driver = "SQL Server",
-                 Server = "projectbamosz2.database.windows.net",
-                 Database = "project_bamosz",
-                 UID = "backend.datavis",
-                 PWD = "Vizsla123",
-                 Port = 1433)
+#con <- dbConnect(odbc(),
+#                 Driver = "SQL Server",
+#                 Server = "projectbamosz2.database.windows.net",
+#                 Database = "project_bamosz",
+#                 UID = "backend.datavis",
+#                 PWD = "Vizsla123",
+#                 Port = 1433)
 #dateframe-be berakom a beimportalt tablakat
+<<<<<<< HEAD
 categories_df<- tbl(con, sql("SELECT * FROM dbo.categories_final")) %>% as_data_frame()
 currency_df<- tbl(con, sql("SELECT * FROM dbo.currency_final")) %>% as_tibble() 
 dates_df<- tbl(con, sql("SELECT * FROM dbo.dates_final")) %>% as_tibble() 
 timeseries_df<- tbl(con, sql("SELECT * FROM dbo.timeseries_final")) %>% as_tibble()
+=======
+
+#categories_df<- tbl(con, sql("SELECT * FROM dbo.categories_final")) %>% as_tibble() 
+#currency_df<- tbl(con, sql("SELECT * FROM dbo.currency_final")) %>% as_tibble() 
+#dates_df<- tbl(con, sql("SELECT * FROM dbo.dates_final")) %>% as_tibble() 
+#timeseries_df<- tbl(con, sql("SELECT * FROM dbo.timeseries_final")) %>% as_tibble()
+>>>>>>> 5fbeffc40b66a8fdd1ed40cb0d6300a95491984e
 
 
 
@@ -81,61 +90,83 @@ ui <- fluidPage(
       conditionalPanel(
         condition = "input.formazas == 'Egyedi'",
         column(
-          2,
-          actionButton(inputId = "generalButton", label = "?ltal?nos"),
-          conditionalPanel(
-            condition = ("input.generalButton%2!=0"),
-            colourpicker::colourInput("col", "Háttér szín", value = "grey"),
-            textInput(
-              'AbraCime',
-              'Cím megadása:',
-              value="Cím megadása"
-            ),
-            numericInput("Cimsize", "Cím mérete:", "22")
-          )
-        ),
-        column(
-          2,
-          actionButton(inputId = "xButton", label = "X tengely"),conditionalPanel(condition = ("input.xButton%2!=0"),
+          width=12, offset=1,
           selectInput(
-            "betutipus",
-            "Bet?t?pus",
-            selected = 'F',
-            choices = c("Times", "Calibri", "Helvetica", "Open-Sans")
-          ))
-        ),
-        column(
-          2,
-          actionButton(inputId = "yButton", label = "Y tengely"),conditionalPanel(condition = ("input.yButton%2!=0"),
-                                                                                  selectInput(
-                                                                                    "betutipus",
-                                                                                    "Bet?t?pus",
-                                                                                    selected = 'F',
-                                                                                    choices = c("Times", "Calibri", "Helvetica")
-                                                                                  ))
-        ),
-        column(
-          2,
-          actionButton(inputId = "jelmagyButton", label = "Jelmagyarázat"),conditionalPanel(condition = ("input.jelmagyButton%2!=0"),
-                                                                                  selectInput(
-                                                                                    "betutipus",
-                                                                                    "Bet?t?pus",
-                                                                                    selected = 'F',
-                                                                                    choices = c("Times", "Calibri", "Helvetica")
-                                                                                  ))
-        ),
-        column(
-          2,
-          actionButton(inputId = "adatfelButton", label = "Adatfeliratok és színek"),conditionalPanel(condition = ("input.adatfelButton%2!=0"),
-                                                                                            selectInput(
-                                                                                              "betutipus",
-                                                                                              "Bet?t?pus",
-                                                                                              selected = 'F',
-                                                                                              choices = c("Times", "Calibri", "Helvetica")
-                                                                                            ))
-        ),
-        
-        
+            "formazas_terulet",
+            "",
+            selected = 'Általános',
+            choices = c("Általános",
+                        "Színpaletta",
+                        "Cím",
+                        "X tengely",
+                        "Y tengely",
+                        "Jelmagyarázat",
+                        "Adatfeliratok")
+          ),
+          conditionalPanel(
+            condition = "input.formazas_terulet == 'Színpaletta'",
+            column(
+              width=12,
+                colourpicker::colourInput("col_1", "Szín #1", value = "white"),
+                colourpicker::colourInput("col_2", "Szín #2", value = "white"),
+                colourpicker::colourInput("col_3", "Szín #3", value = "white"),
+                colourpicker::colourInput("col_4", "Szín #4", value = "white"),
+                colourpicker::colourInput("col_5", "Szín #5", value = "white"),
+                colourpicker::colourInput("col_6", "Szín #6", value = "white")
+            )
+          ),
+          conditionalPanel(
+            condition = "input.formazas_terulet == 'Általános'",
+            column(
+              width=12,
+                colourpicker::colourInput("base_col", "Háttér szín", value = "white"),
+                selectInput(
+                  "font_type",
+                  "Betűtípus",
+                  selected = 'F',
+                  choices = c("Times", "Calibri", "Helvetica", "Open-Sans")
+                )
+            )
+          ),
+          conditionalPanel(
+            condition = "input.formazas_terulet == 'Cím'",
+            column(
+              width=12,
+                textInput(
+                  'title_text',
+                  'Cím megadása:',
+                  value="Cím"
+                ),
+                numericInput("title_size", "Cím mérete:", "22"),
+                colourpicker::colourInput("title_color", "Cím színe", value = "black"),
+                selectInput(
+                  "title_alignment",
+                  "Cím igazítása",
+                  selected = 'F',
+                  choices = c(0, 0.5, 1)
+                )
+            )
+          ),
+          conditionalPanel(
+            condition = "input.formazas_terulet == 'X tengely'",
+            column(
+              width=12,
+                textInput(
+                  'x_text',
+                  'Tengelycím (x) megadása:',
+                  value="Cím"
+                ),
+                numericInput("x_size", "Tengelycím (x) mérete:", "12"),
+                colourpicker::colourInput("x_color", "Tengelycím (x) színe", value = "black"),
+                selectInput(
+                  "x_alignment",
+                  "Tengelycím (x) igazítása",
+                  selected = 'F',
+                  choices = c(0, 0.5, 1)
+                )
+            )
+          )
+        )
       )
     )))
 

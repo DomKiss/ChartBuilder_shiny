@@ -59,8 +59,17 @@ ui <- fluidPage(fluidRow(
     
     
   ),
-  
-    column(width=4, DT::DTOutput("tabletab"), plotly::plotlyOutput('Alap_arfolyama_plot'))
+  mainPanel(tabsetPanel(
+    #line chart
+    tabPanel('Táblázat', DT::DTOutput("tabletab")),
+    #table
+    tabPanel('Oszlopdiagram', plotly::plotlyOutput('barplot')),
+    tabPanel('Pontdiagram', plotly::plotlyOutput('pointplot')),
+    tabPanel('Területdiagram', plotly::plotlyOutput('areaplot')),
+    tabPanel('Vonaldiagram', plotly::plotlyOutput('lineplot'))
+    
+  ))
+    #column(width=4, DT::DTOutput("tabletab"), plotly::plotlyOutput('Alap_arfolyama_plot'))
   
 ))
 
@@ -86,20 +95,35 @@ server <- function(input, output, session) {
     )
   )
 
-#beadom kulon reaktiv valtozoba a lekerdezett timeseries_df-et, es így mar csak akkor kell ujratoltenie, ha datumban van valtozas
+# isin_react<- reactive({
+#   paste0("('", paste(res_mod() %>% select(ISIN_KOD) %>% unique, collapse = "', '") %>% as.character(), "')")
+# })
   
-  react_ts <- reactive({
-  sqldf::sqldf(
-    paste(
-      "select * FROM timeseries_df WHERE DATUM >'",
-      input$dateRange[1],
-      "' AND DATUM<", "'",
-      input$dateRange[2], "'",
-      "",
-      sep = ""
-    )
-  )
-})
+ 
+  
+#beadom kulon reaktiv valtozoba a lekerdezett timeseries_df-et, es így mar csak akkor kell ujratoltenie, ha datumban van valtozas
+
+  react_ts <- reactive({ tbl(con, sql(paste(
+    "select * FROM dbo.timeseries_final WHERE DATUM >'",
+    input$dateRange[1],
+    "' AND DATUM<", "'",
+    input$dateRange[2], "'",
+    "", " AND ISIN_KOD IN ", paste0("('", paste(res_mod()$ISIN_KOD %>% unique, collapse = "', '") %>% as.character(), "')"),
+    sep = ""
+  ))) %>% as_tibble() })
+  
+  # react_ts <- reactive({
+  # sqldf::sqldf(
+  #   paste(
+  #     "select * FROM timeseries_df WHERE DATUM >'",
+  #     input$dateRange[1],
+  #     "' AND DATUM<", "'",
+  #     input$dateRange[2], "'",
+  #     "", " AND ISIN_KOD IN ", paste0("('", paste(res_mod()$ISIN_KOD %>% unique, collapse = "', '") %>% as.character(), "')"),
+  #     sep = ""
+  #   )
+  # )
+
 
 react_selected <- reactive({
   react_ts() %>% select(ISIN_KOD, !!!input$valuevalaszt)
@@ -133,13 +157,27 @@ react_selected <- reactive({
       # ggplot(abra_df)+stat_summary(aes(x=get(merged_colnames[1]), y=get(merged_colnames[2])), fun.y=mean, 
       #                              geom = paste0(chart_tipus))
       
-      ggplot(data = abra_df, aes(x = get(merged_colnames[1]), y = get(merged_colnames[2])))  +  
-        stat_summary(fun=input$osszegzofv, geom="bar")
+      return(ggplot(data = abra_df, aes(x = get(merged_colnames[1]), y = get(merged_colnames[2])))  +  
+        stat_summary(fun=input$osszegzofv, geom=chart_tipus))
     }
   
+  #bar output
+  output$barplot <- plotly::renderPlotly({
+    plot_fuggveny("bar")
+  })
+  
+  #point output
+  output$pointplot <- plotly::renderPlotly({
+    plot_fuggveny("point")
+  })
+  
   #area output
-  output$Alap_arfolyama_plot <- plotly::renderPlotly({
-    plot_fuggveny(geom_col())
+  output$areaplot <- plotly::renderPlotly({
+    plot_fuggveny("area")
+  })
+  #line output
+  output$lineplot <- plotly::renderPlotly({
+    plot_fuggveny("line")
   })
   
   
