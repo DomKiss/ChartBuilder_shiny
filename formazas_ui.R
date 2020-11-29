@@ -1,6 +1,8 @@
 library(shiny)
 library(shinydashboard)
 library(shinydashboardPlus)
+library(shinyWidgets)
+
 
 ui <-
   dashboardPagePlus(
@@ -13,21 +15,7 @@ ui <-
           dropdownBlock(
             id = "dropdown_title",
             title = "Cím",
-            icon = icon("sliders"),
-            textInput('title_text',
-                      'Cím megadása:',
-                      value = "Cím"),
-            prettySwitch(
-              inputId = "title_switch",
-              label = "Részletes beállítások",
-              fill = TRUE,
-              status = "primary"
-            ),
-            conditionalPanel(
-              condition = "input.title_switch > 0",
-              numericInput("title_size", "Cím mérete:", "22"),
-              colourpicker::colourInput("title_color", "Cím színe", value = "black")
-            )
+            icon = icon("sliders")
           )
         )
     ),
@@ -35,19 +23,24 @@ ui <-
     sidebar = dashboardSidebar( ),
     
     body = dashboardBody(
-      #setShadow(class = "dropdown-menu"),
-        tabsetPanel(
-          #line chart
-          tabPanel('Line chart', plotly::plotlyOutput('Alap_arfolyama_plot')),
-          #table
-          tabPanel('Table', DT::DTOutput('Alap_arfolyama_table')),
-          #scatter
-          tabPanel('Scatter plot', plotly::plotlyOutput('Alap_arfolyama_Scatterplot')),
-          #bar
-          tabPanel('Bar chart', plotly::plotlyOutput('Alap_arfolyama_colplot')),
-          #ribbon
-          tabPanel('Area chart', plotly::plotlyOutput('Alap_arfolyama_areaplot'))
+      setShadow(class = "dropdown-menu"),
+      br(),
+      br(),
+      tabsetPanel(
+        id = "chart_tabset", 
+        selected = NULL, 
+        type ="pills", #"tabs",
+        tabPanel(
+          'Bar chart', 
+          plotly::plotlyOutput('Alap_arfolyama_colplot')
+        ),
+        tabPanel(
+          'Temp chart', 
+          "empty"
         )
+      
+      )
+
     ),
     
   
@@ -96,6 +89,77 @@ ui <-
               colourpicker::colourInput("col_felt_2", "Szín -", value = "red")
             )
           )
+        ),
+        rightSidebarTabContent(
+          id = 3,
+          title = "Szövegbeállítások",
+          icon = "font",
+          radioGroupButtons(
+            inputId = "text",
+            choices=c("Cím", "X tengely", "Y tengely", "Adatfelirat"),
+            justified = TRUE,
+            direction = "horizontal",
+            size = "sm",
+            status = "primary"
+          ),
+          br(), ####kéne valami vonal
+          conditionalPanel(
+            condition = "input.text == 'Cím'",
+            textInput('title_text',
+                      'Cím megadása:',
+                      value = "Default cím"),
+            radioGroupButtons(
+              inputId = "title_align",
+              label = "Cím igazítása:",
+              choiceNames = list( icon("align-left"), icon("align-center"), icon("align-right") ),
+              choiceValues = list(0, 0.5, 1),
+              justified = TRUE,
+              status = "primary"
+            ),
+            checkboxGroupButtons(
+              inputId = "title_font",
+              label = "Cím kiemelése:",
+              choiceNames = list( icon("bold"), icon("italic")),
+              choiceValues = list("bold", "italic"),
+              justified = TRUE,
+              status = "primary"
+            ),
+            numericInput("title_size", "Cím betűmérete:", "22"),
+            colourpicker::colourInput("title_color", "Cím színe:", value = "black")
+          ),
+          conditionalPanel(
+            condition = "input.text == 'X tengely'",
+            textInput('x_text',
+                      'Tengelyfelirat (x) megadása:',
+                      value = "Default x tengely"),
+            checkboxGroupButtons(
+              inputId = "x_font",
+              label = "Tengelyfelirat (x) kiemelése:",
+              choiceNames = list( icon("bold"), icon("italic")),
+              choiceValues = list("bold", "italic"),
+              justified = TRUE,
+              status = "primary"
+            ),
+            numericInput("x_size", "Tengelyfelirat (x) betűmérete:", "12"),
+            colourpicker::colourInput("x_color", "Tengelyfelirat (x) színe", value = "black")
+          ),
+          conditionalPanel(
+            condition = "input.text == 'Y tengely'",
+            textInput('y_text',
+                      'Tengelyfelirat (y) megadása:',
+                      value = "Default y tengely"),
+            checkboxGroupButtons(
+              inputId = "y_font",
+              label = "Tengelyfelirat (x) kiemelése:",
+              choiceNames = list( icon("bold"), icon("italic")),
+              choiceValues = list("bold", "italic"),
+              justified = TRUE,
+              status = "primary"
+            ),
+            numericInput("y_size", "Tengelyfelirat (y) betűmérete:", "12"),
+            colourpicker::colourInput("y_color", "Tengelyfelirat (y) színe", value = "black")
+          )
+          
         )
       ),
     
@@ -104,3 +168,36 @@ ui <-
   )
 
 shinyApp(ui = ui, server = server)
+
+getwd()
+
+# title = 'Cím',
+# textInput('title_text',
+#           'Cím megadása:',
+#           value = "Cím"),
+# prettySwitch(
+#   inputId = "title_switch",
+#   label = "Részletes beállítások",
+#   fill = TRUE,
+#   status = "primary"
+# ),
+# conditionalPanel(
+#   condition = "input.title_switch > 0",
+#   radioGroupButtons(
+#     inputId = "t",
+#     label = "Choices",
+#     choiceNames = list( icon("align-left"), icon("align-center"), icon("align-right") ),
+#     choiceValues = list(0, 0.5, 1),
+#     justified = TRUE,
+#     status = "primary"
+#   ),
+#   radioButtons(
+#     inputId = "title_alignment",
+#     label = "Choices",
+#     choiceNames = list( icon("align-left"), icon("align-center"), icon("align-right") ),
+#     choiceValues = list(0, 0.5, 1)
+#   ),
+#   numericInput("title_size", "Cím mérete:", "22"),
+#   colourpicker::colourInput("title_color", "Cím színe", value = "black")
+# )
+
