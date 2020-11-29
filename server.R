@@ -80,7 +80,16 @@ server <- function(input, output, session){
           axis.title.x = element_text(size = input$x_size, 
                                       family = input$font_type,
                                       colour = input$x_color,
-                                      hjust = input$x_alignment)
+                                      hjust = input$x_alignment),
+          axis.title.y = element_text(size = input$y_size, 
+                                      family = input$font_type,
+                                      colour = input$y_color,
+                                      hjust = input$y_alignment),
+          legend.text = element_text(size = input$legend_size, 
+                                      family = input$legend_type,
+                                      colour = input$legend_color,
+                                      hjust = input$legend_alignment),
+          legend.position = input$jelm_position
         ) 
         # scale_colour_manual(values =
         #                       c(
@@ -115,19 +124,6 @@ server <- function(input, output, session){
   output$Alap_arfolyama_areaplot <- plotly::renderPlotly({
     plot_fuggveny(geom_area())
   })
-  
-  
-  #misc
-  szumma_formazas_gombok <- 
-    reactive({ 
-        input$colButton +
-        input$generalButton +
-        input$cimButton +
-        input$xButton +
-        input$yButton +
-        input$jelmagyButton +
-        input$adatfelButton +
-    })
   
 
   
