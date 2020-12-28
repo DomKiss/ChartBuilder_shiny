@@ -186,6 +186,29 @@ abra_df_react <-
       abra_df <- abra_df_react()
       merged_colnames <- colnames(abra_df)
       
+      orig_color_list <- 
+        c(
+          input$col_1,
+          input$col_2,
+          input$col_3,
+          input$col_4,
+          input$col_5,
+          input$col_6,
+          input$col_7,
+          input$col_8,
+          input$col_9,
+          input$col_10,
+          input$col_11,
+          input$col_12
+        )
+      num_of_colors_orig <- length(orig_color_list)
+      num_of_colors_needed <- abra_df %>% select(fill) %>% distinct() %>% unlist() %>% length()
+      multiplier <- ceiling(num_of_colors_needed / num_of_colors_orig)
+      final_color_list <- c()
+      for (i in 1:multiplier) {
+          final_color_list <- c(final_color_list, orig_color_list)
+      }
+      final_color_list <- final_color_list[1:num_of_colors_needed]
       
       finished_plot <- 
         plotly::plot_ly(
@@ -198,23 +221,21 @@ abra_df_react <-
             },
           y = ~ get(y),
           color = ~ get(fill),
-          text = ~ get(y), 
-          textposition = 'auto',
-          colors = c(
-            input$col_1,
-            input$col_2,
-            input$col_3,
-            input$col_4,
-            input$col_5
-          ),
+          text = ~ get(y)/10^9, 
+          textposition = 'inside',
+          hoverinfo = "text",
+          insidetextfont = list(size=2, color = 'black'),
+          colors = final_color_list, #fent van összerakva!!!
           type = 'bar'
         )
-
+  
+      
+       
       return(finished_plot)
     }
   
   
-  
+
   
 
   
