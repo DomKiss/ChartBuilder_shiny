@@ -11,26 +11,28 @@ library(dbplyr)
 #extrafont::font_import()
 library(odbc)
 #connection letrehozasa az sql szererrel
-#con <- dbConnect(odbc(),
-#                 Driver = "SQL Server",
-#                 Server = "projectbamosz2.database.windows.net",
-#                 Database = "project_bamosz",
-#                 UID = "backend.datavis",
-#                 PWD = "Vizsla123",
-#                 Port = 1433)
+con <- dbConnect(odbc(),
+                 Driver = "SQL Server",
+                 Server = "projectbamosz2.database.windows.net",
+                 Database = "project_bamosz",   UID = "backend.datavis",
+                PWD = "Vizsla123",
+                 Port = 1433)
 #dateframe-be berakom a beimportalt tablakat
-<<<<<<< HEAD
+#<<<<<<< HEAD
 categories_df<- tbl(con, sql("SELECT * FROM dbo.categories_final")) %>% as_data_frame()
 currency_df<- tbl(con, sql("SELECT * FROM dbo.currency_final")) %>% as_tibble() 
 dates_df<- tbl(con, sql("SELECT * FROM dbo.dates_final")) %>% as_tibble() 
 timeseries_df<- tbl(con, sql("SELECT * FROM dbo.timeseries_final")) %>% as_tibble()
-=======
+
+
+
+#=======
 
 #categories_df<- tbl(con, sql("SELECT * FROM dbo.categories_final")) %>% as_tibble() 
 #currency_df<- tbl(con, sql("SELECT * FROM dbo.currency_final")) %>% as_tibble() 
 #dates_df<- tbl(con, sql("SELECT * FROM dbo.dates_final")) %>% as_tibble() 
 #timeseries_df<- tbl(con, sql("SELECT * FROM dbo.timeseries_final")) %>% as_tibble()
->>>>>>> 5fbeffc40b66a8fdd1ed40cb0d6300a95491984e
+#>>>>>>> 5fbeffc40b66a8fdd1ed40cb0d6300a95491984e
 
 
 
