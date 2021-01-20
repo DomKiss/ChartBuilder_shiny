@@ -1,98 +1,12 @@
-library(treemapify)
+#library(treemapify)
 library(shiny)
 library(shinyWidgets)
 library(dplyr)
 library(ggplot2)
+library(plotly)
 
 
-ui <- 
-  fluidPage(fluidRow(
-  column(
-    width = 4,
-    tags$h3("Szűrők beállítása"),
-    bookmarkButton(),
-    dateRangeInput('dateRange',
-                   label = 'Dátum kivalasztasa',
-                   start = Sys.Date() - 200, end = Sys.Date() - 150
-    ),
-    
-    #kategoria, ertek kivalasztasa
-    varSelectInput(
-      "tengelyvalaszt",
-      "Tengely:",
-      merge(categories_df, timeseries_df %>% select(ISIN_KOD, DATUM)),
-      multiple = FALSE,
-      selected = "ALAPKEZELO"
-    ),
-    
-    #datum havi heti stb. illetve datum aggregalva legyen-e?
-    conditionalPanel("input.tengelyvalaszt=='DATUM'", 
-                     selectInput("datumszuro", "datumszuro", c("UNAP_EV", "UNAP_NEGYEDEV", "UNAP_HONAP", "UNAP_HET", "Napi"), selected="Napi"),
-                     ),
-    #switch: aggergalva legyen-e
-    #conditionalPanel("input.tengelyvalaszt=='DATUM'",materialSwitch(inputId = "datumagr", label = "Időben összevonva", status = "összevonva")),
-    conditionalPanel("input.tengelyvalaszt=='DATUM'", materialSwitch(inputId = "datumagr", label = "Időben összevonva", status = "primary")),
-    #kategoria, ertek kivalasztasa
-    varSelectInput(
-      "kategoriavalaszt",
-      "Jelmagyarázat:",
-      categories_df,
-      multiple = FALSE,
-      selected = "BEFPOL_SZERINTI_KATEGORIA"
-    ),
-    varSelectInput(
-      "valuevalaszt",
-      "Értékek",
-      timeseries_df,
-      multiple = FALSE,
-      selected = "NETTO_ESZKOZERTEK"
-    ),
-    
-    
-    selectInput("osszegzofv", "Összegző függvény", c("mean", "sum", "count", "max", "min"), selected="sum"),
-    
-  
-    panel(
-      selectizeGroupUI(
-        id = "my-filters",
-        inline = FALSE,
-        params = list(
-          ALAPKEZELO = list(inputId = "ALAPKEZELO", title = "Alapkezelő:"),
-          ALAP_NEVE = list(inputId = "ALAP_NEVE", title = "Alap neve:"),
-          BEFPOL_SZERINTI_KATEGORIA = list(inputId = "BEFPOL_SZERINTI_KATEGORIA", title = "Befektetési politika:"),
-          LETETKEZELO = list(inputId = "LETETKEZELO", title = "Letétkezelő"),
-          ALAPTIPUS = list(inputId = "ALAPTIPUS", title = "Alapítpus:"),
-          ALAPFAJTA = list(inputId = "ALAPFAJTA", title = "Alapfajta:"),
-          DEVIZALIS_KITETTSEG = list(inputId = "DEVIZALIS_KITETTSEG", title = "Devizális kitettség:"),
-          FOLDRAJZI_KITETTSEG = list(inputId = "FOLDRAJZI_KITETTSEG", title = "Földrajzi kitettség:"),
-          EGYEB_KITETTSEG = list(inputId = "EGYEB_KITETTSEG", title = "Egyéb kitettség:"),
-          DEVIZANEM = list(inputId = "DEVIZANEM", title = "Devizanem:"),
-          STATUSZ = list(inputId = "STATUSZ", title = "Státusz:")
-        )
-      ),
-      status = "primary"
-    ),
-     
-   
-  ),
-  mainPanel(tabsetPanel(
-    #line chart
-    tabPanel('Táblázat', DT::DTOutput("tabletab")),
-    tabPanel('Halmozott oszlop', plotly::plotlyOutput('barplot')),
-    tabPanel('Csoportosított oszlop', plotly::plotlyOutput('barplotclust')),
-    tabPanel('Csoportosított sávdiagram', plotly::plotlyOutput('savplot')),
-    tabPanel('Halmozott sávdiagram', plotly::plotlyOutput('savplotclust')),
-    tabPanel('Pontdiagram', plotly::plotlyOutput('pointplot')),
-    tabPanel('Területdiagram', plotly::plotlyOutput('areaplot')),
-    tabPanel('Vonaldiagram', plotly::plotlyOutput('lineplot')),
-    tabPanel('Kördiagram', plotly::plotlyOutput('pieplot')),
-    tabPanel('Fánkdiagram', plotly::plotlyOutput('donutplot')),
-    tabPanel('Treemap', plotOutput('treemapplot'))
-   
-  ))
-    #column(width=4, DT::DTOutput("tabletab"), plotly::plotlyOutput('Alap_arfolyama_plot'))
-  
-))
+
 
 #szurok alkalmazasa categories tablan
 server <- function(input, output, session) {
@@ -204,39 +118,114 @@ abra_df_react <-
 
 #mergelem a lekerdezett reactive time-series df valtozot a categories-zal
   output$tabletab <-
-    DT::renderDT(abra_df_react())
+    #DT::renderDT(abra_df_react())
+    DT::renderDT(DT::datatable(abra_df_react(),
+                               selection = "none", 
+                               extensions = 'Buttons',
+                               option = list(
+                                             autoWidth = TRUE, 
+                                             dom = 'Blfrtip', 
+                                             pageLength = -1,
+                                             lengthMenu = list( c(10, 100, 1000, -1), c('10', '100', '1000', 'All') ),
+                                             buttons = c('copy', 'csv', 'excel')
+                                             )
+                               ) 
+                 )
   
 #GGPLOTOS ABRA FUGGVENY
   plot_fuggveny <-
-    function(kivalasztott_ertek = input$valuevalaszt,
+    function(plot_type = "base",
+             kivalasztott_ertek = input$valuevalaszt,
              kategoria = input$kategoriavalaszt,
              x = merged_colnames[which(colnames(abra_df_react()) == input$tengelyvalaszt)],
              y = merged_colnames[which(colnames(abra_df_react()) == input$valuevalaszt)],
              fill = merged_colnames[which(colnames(abra_df_react()) == input$kategoriavalaszt)],
              area = "",
              label = "",
-             subgroup="") {
+             subgroup=""
+             
+             ) {
+      
       abra_df <- abra_df_react()
       merged_colnames <- colnames(abra_df)
-      
-      return(
-        ggplot(
-          data = abra_df,
-          aes(
-            x = if (input$tengelyvalaszt == "DATUM") {
+      finished_plot <- 
+      ggplot(
+        data = abra_df,
+        aes(
+          x = 
+            if (plot_type == "pie") {
+              ""
+            } else if (input$tengelyvalaszt == "DATUM") {
               as.Date(get(x))
             } else {
               get(x)
             },
-            y = get(y),
-            fill = get(fill))
-          ,
+          y = get(y),
+          fill = get(fill)),
           width = 1,
           stat = "identity"
-        ))  #+
-        #   stat_summary(fun = input$osszegzofv, geom = chart_tipus)
-      #)
+      )
+      
+      return(finished_plot)  
+      
     }
+  
+  
+  
+  proba_plotly <-
+    function(
+      kivalasztott_ertek = input$valuevalaszt,
+      kategoria = input$kategoriavalaszt,
+      x = merged_colnames[which(colnames(abra_df_react()) == input$tengelyvalaszt)],
+      y = merged_colnames[which(colnames(abra_df_react()) == input$valuevalaszt)],
+      fill = merged_colnames[which(colnames(abra_df_react()) == input$kategoriavalaszt)]
+    )
+      {
+      
+      
+      abra_df <- abra_df_react()
+      merged_colnames <- colnames(abra_df)
+      
+      
+      finished_plot <- 
+        plotly::plot_ly(
+          abra_df,
+          x = ~
+            if (input$tengelyvalaszt == "DATUM") {
+              as.Date(get(x))
+            } else {
+              get(x)
+            },
+          y = ~ get(y),
+          color = ~ get(fill),
+          text = ~ get(y), 
+          textposition = 'auto',
+          colors = c(
+            input$col_1,
+            input$col_2,
+            input$col_3,
+            input$col_4,
+            input$col_5
+          ),
+          type = 'bar'
+        )
+
+      return(finished_plot)
+    }
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
   #PLOTLY ABRA FUGGVENY
   plot_fuggveny_plotly <-
     function(kivalasztott_ertek = input$valuevalaszt,
@@ -244,15 +233,264 @@ abra_df_react <-
       abra_df <- abra_df_react()
       merged_colnames <- colnames(abra_df)
       
-      return(plotly::plot_ly(abra_df,
-                             labels = abra_df[, which(colnames(abra_df_react()) == input$kategoriavalaszt)], 
-                             values = abra_df[, which(colnames(abra_df_react()) == input$valuevalaszt)]))
+      
+      finished_plot <- 
+        plotly::plot_ly(
+          abra_df,
+          labels = abra_df[, which(colnames(abra_df_react()) == input$kategoriavalaszt)], 
+          values = abra_df[, which(colnames(abra_df_react()) == input$valuevalaszt)],
+          marker =
+            list(colors = c(
+              input$col_1,
+              input$col_2,
+              input$col_3,
+              input$col_4,
+              input$col_5,
+              input$col_6,
+              input$col_7,
+              input$col_8,
+              input$col_9,
+              input$col_10
+            )
+          ),
+          sort = T
+        )
+      
+      return(finished_plot)
     }
+  
+  
+  
+  
+design <-  function(temp_plot){
+  
+
+  layout(
+    temp_plot,
+    margin = list(t=60, r=50),
+    
+    plot_bgcolor = input$col_base,
+    paper_bgcolor = input$col_base,
+    
+    xaxis = 
+      list(
+        showgrid = TRUE,
+        gridcolor = ifelse(input$xgrid == TRUE, input$xgrid_color,input$col_base),
+        
+        linecolor = input$xscale_color, 
+        linewidth = input$xscale_width,
+        
+        title = 
+          paste("<br>",
+                ifelse(length(input$x_font) == 0, input$x_text,
+                       case_when(
+                         length(input$x_font) > 1 ~ paste("<b><i>", input$x_text, "<i></b>"),
+                         input$x_font == "bold" ~ paste("<b>", input$x_text, "<b>"),
+                         input$x_font == "italic" ~ paste("<i>", input$x_text, "<i>")
+                       )
+                ),
+                "<br> <br>"),
+        titlefont = 
+          list(
+            family = input$font_type,
+            size = input$x_size,
+            color = input$x_color
+          ),
+        
+        showticklabels = TRUE,
+        tickcolor = ifelse(input$xscale_tick == TRUE, input$xscale_color, input$col_base), 
+        tickangle = input$xscale_angle,
+        tickfont =
+          list(
+            family = input$font_type,
+            size = input$xscale_size,
+            color = input$xscale_fontcolor
+          )
+      ),
+    
+    yaxis = 
+      list(
+        showgrid = TRUE,
+        gridcolor = ifelse(input$ygrid == TRUE, input$ygrid_color,input$col_base),
+        
+        linecolor = input$yscale_color, 
+        linewidth = input$yscale_width,
+        
+        title = 
+          paste("<br>",
+                ifelse(length(input$y_font) == 0, input$y_text,
+                       case_when(
+                         length(input$y_font) > 1 ~ paste("<b><i>", input$y_text, "<i></b>"),
+                         input$y_font == "bold" ~ paste("<b>", input$y_text, "<b>"),
+                         input$y_font == "italic" ~ paste("<i>", input$y_text, "<i>")
+                       )
+                ),
+                "<br> <br>"),
+        titlefont = 
+          list(
+            family = input$font_type,
+            size = input$y_size,
+            color = input$y_color
+          ),
+        
+        showticklabels = TRUE,
+        tickcolor = ifelse(input$yscale_tick == TRUE, input$yscale_color, input$col_base), 
+        tickangle = input$yscale_angle,
+        tickfont =
+          list(
+            family = input$font_type,
+            size = input$yscale_size,
+            color = input$yscale_fontcolor
+          )
+      ),
+    
+    
+    legend =
+      list(
+        orientation = unlist(legend_orientation(input$legend_align, input$legend_adjustment))[1],
+        x = unlist(legend_orientation(input$legend_align, input$legend_adjustment))[2],
+        y = unlist(legend_orientation(input$legend_align, input$legend_adjustment))[3],
+        xanchor = "center",
+        yanchor = "center",
+        
+        font =
+          list(
+            family = input$font_type,
+            size = input$legend_textsize,
+            color = input$legend_textcolor
+          ),
+        title = 
+          list(
+            text = input$legend_titletext,
+            font =
+              list(
+                family = input$font_type,
+                size = input$legend_titlesize,
+                color = input$legend_titlecolor
+              )
+          )
+      ),
+    showlegend = ifelse(input$legend_align == "none", FALSE, TRUE),
+    
+    title = 
+      list(
+        text = ifelse(length(input$title_font) == 0, input$title_text,
+                      case_when(
+                        length(input$title_font) > 1 ~ paste("<b><i>", input$title_text, "<i></b>"),
+                        input$title_font == "bold" ~ paste("<b>", input$title_text, "<b>"),
+                        input$title_font == "italic" ~ paste("<i>", input$title_text, "<i>")
+                      )
+        ),
+        font =
+          list(
+            family = input$font_type,
+            size = input$title_size,
+            color = input$title_color
+          ),
+        x = input$title_align,
+        standoff=20
+      )
+  )
+  
+}  
+  
+  
+  
+
+  #   
+  # list(
+  #   ggtitle(input$title_text),
+  #   xlab( input$x_text ),
+  #   ylab( input$y_text ),
+  #   labs( fill = input$legend_titletext ),
+    
+    # geom_text(
+    #   label = "input$valuevalaszt",
+    #   hjust = 0.5,
+    #   position = position_dodge(width = 0.75),
+    #   size = input$label_size,
+    #   color = input$label_color,
+    #   fontface = ifelse(length(input$label_font) > 1, "bold.italic", ifelse(length(input$label_font) == 0, "plain", input$label_font) ),
+    #   check_overlap = TRUE
+    # ),
+    
+    # theme(
+      #panel.background = element_rect(fill = input$col_base),
+      # plot.title = element_text(size = input$title_size, 
+      #                           family = input$font_type,
+      #                           colour = input$title_color,
+      #                           hjust = input$title_align,
+      #                           face = ifelse(length(input$title_font) > 1, "bold.italic", ifelse(length(input$title_font) == 0, "plain", input$title_font) ) ),
+      # axis.title.x = element_text(size = input$x_size,
+      #                             vjust=1,
+      #                             hjust=1,
+      #                             family = input$font_type,
+      #                             colour = input$x_color,
+      #                             face = ifelse(length(input$x_font) > 1, "bold.italic", ifelse(length(input$x_font) == 0, "plain", input$x_font) ) ),
+      # axis.title.y = element_text(size = input$y_size, 
+      #                             family = input$font_type,
+      #                             colour = input$y_color,
+      #                             face = ifelse(length(input$y_font) > 1, "bold.italic", ifelse(length(input$y_font) == 0, "plain", input$y_font) ) ),
+      # 
+      # axis.text.x = element_text(size = input$xscale_size, 
+      #                            family = input$font_type,
+      #                            colour = input$xscale_fontcolor,
+      #                            angle = -input$xscale_angle),
+      # axis.ticks.x = element_line(color = ifelse(input$xscale_tick == TRUE, input$xscale_color, input$col_base) ),
+      # axis.line.x = element_line(color = input$xscale_color, size = input$xscale_width),
+      # 
+      # axis.text.y = element_text(size = input$yscale_size, 
+      #                            family = input$font_type,
+      #                            colour = input$yscale_fontcolor,
+      #                            angle = -input$yscale_angle),
+      # axis.ticks.y = element_line(color = ifelse(input$yscale_tick == TRUE, input$yscale_color, input$col_base) ),
+      # axis.line.y = element_line(color = input$yscale_color, size = input$yscale_width),
+      
+      # legend.text = element_text(size = input$legend_textsize,
+      #                            family = input$font_type,
+      #                            colour = input$legend_textcolor),
+      # legend.position = input$legend_align,
+      # legend.title = element_text(size = input$legend_titlesize,
+      #                             family = input$font_type,
+      #                             colour = input$legend_titlecolor),
+      
+      # panel.grid.major = element_line(color = ifelse(input$majorgrid == TRUE, input$majorgrid_color,input$col_base) ),
+      # panel.grid.minor = element_line(color = ifelse(input$minorgrid == TRUE, input$minorgrid_color,input$col_base) )
+    # )
+    
+  # )
+
+
+
+
+
+
+
+
+
+
+legend_orientation <- function( input_orientation, input_legend_align ){
+  position <- 
+    case_when(
+      input_orientation == "right" ~ list('v', 1.1, 0.5),
+      input_orientation == "bottom" ~ list('h', 0.5, -input_legend_align)       
+    )
+  return(position)
+}
+  
+
+
+
  
     
   #bar output
-  output$barplot <- plotly::renderPlotly({
-    plot_fuggveny()+geom_bar(stat='identity')
+  output$barplot <- plotly::renderPlotly({ 
+    
+    proba_plotly() %>% layout(barmode = 'stack' ) %>%
+    design()
+   
+            
+
   })
   
   #clustered
@@ -263,7 +501,9 @@ abra_df_react <-
   
   #savdiagram
   output$savplot <- plotly::renderPlotly({
-    plot_fuggveny()+geom_col()+coord_flip()
+   
+    plot_fuggveny()+geom_col()+coord_flip() 
+    
   })
   
   #savdiagram clust
@@ -278,23 +518,72 @@ abra_df_react <-
   
   #area output
   output$areaplot <- plotly::renderPlotly({
-    plot_fuggveny()+geom_area()
+    plot_fuggveny()+geom_area() 
   })
   
   #line output
   output$lineplot <- plotly::renderPlotly({
-    plot_fuggveny()+geom_line()
+    plot_fuggveny()+geom_line() 
   })
+  
   #pie output
   output$pieplot <- plotly::renderPlotly({
-    plot_fuggveny_plotly() %>% plotly::add_pie()
-    
+    plot_fuggveny_plotly() %>% plotly::add_pie() %>%
+      design()
   })
+  
   #donut output
   output$donutplot <- plotly::renderPlotly({
-    plot_fuggveny_plotly() %>% plotly::add_pie(hole=0.6)
+    plot_fuggveny_plotly() %>% plotly::add_pie(hole=0.6) %>%
+
+    layout(
+      margin = list(t=60, r=50),
+      legend =
+        list(
+          orientation = unlist(legend_orientation(input$legend_align))[1],
+          x = unlist(legend_orientation(input$legend_align))[2],
+          y = unlist(legend_orientation(input$legend_align))[3],
+          font =
+            list(
+              family = input$font_type,
+              size = input$legend_textsize + 3,
+              color = input$legend_textcolor
+            ),
+          title = 
+            list(
+              text = input$legend_titletext,
+              font =
+                list(
+                  family = input$font_type,
+                  size = input$legend_titlesize + 5,
+                  color = input$legend_titlecolor
+                )
+            )
+        ),
+      showlegend = ifelse(input$legend_align == "none", FALSE, TRUE),
+      title = 
+        list(
+          text = ifelse(length(input$title_font) == 0, input$title_text,
+            case_when(
+              length(input$title_font) > 1 ~ paste("<b><i>", input$title_text, "<i></b>"),
+              input$title_font == "bold" ~ paste("<b>", input$title_text, "<b>"),
+              input$title_font == "italic" ~ paste("<i>", input$title_text, "<i>")
+            )
+          ),
+          font =
+            list(
+              family = input$font_type,
+              size = input$title_size + 3,
+              color = input$title_color
+            ),
+          x = input$title_align,
+          standoff=20
+        )
+    )
     
   })
+  
+  
  
   #TREEMAP
   output$treemapplot <- renderPlot({
