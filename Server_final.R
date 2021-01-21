@@ -10,8 +10,37 @@ library(httr)
 server <- function(input, output, session) {
 #bookmarkhoz valtozo  
 vals <- reactiveValues()
+vals_alapNev <- reactiveValues()
+vals_alapkez <- reactiveValues()
+vals_befpol <- reactiveValues()
+vals_letetkez <- reactiveValues()
+vals_alaptipus <- reactiveValues()
+vals_alapfajta <- reactiveValues()
+vals_devizalis <- reactiveValues()
+vals_foldrajzi <- reactiveValues()
+vals_egyeb <- reactiveValues()
+vals_devizanem <- reactiveValues()
+vals_status <- reactiveValues()
+
+
+
+
 # dummy value to initialize
-vals$sum <- NULL 
+vals$sum<- NULL
+vals_alapkez$sum <- NULL
+vals_alapNev$sum <- NULL 
+vals_befpol$sum <- NULL
+vals_letetkez$sum <- NULL
+vals_alaptipus$sum <- NULL
+vals_alapfajta$sum<- NULL
+vals_devizalis$sum <- NULL
+vals_foldrajzi$sum <- NULL 
+vals_egyeb$sum <- NULL
+vals_devizanem$sum <- NULL
+vals_status$sum <- NULL
+
+
+
   res_mod <- callModule(
     module = selectizeGroupServer,
     id = "my-filters",
@@ -625,19 +654,63 @@ design <-  function(temp_plot){
     session$doBookmark()
   })
   
-
-  setBookmarkExclude(
-    c(
-      "bookmarkBtn",
-      "bookmarkcim"
-    )
-  )
+  
+onBookmark(function(state) {
+    state$values$alapn <- input[["my-filters-ALAP_NEVE"]]
+    state$values$alapkez <- input[["my-filters-ALAPKEZELO"]]
+    state$values$befpol <- input[["my-filters-BEFPOL_SZERINTI_KATEGORIA"]]
+    state$values$letetkez <- input[["my-filters-LETETKEZELO"]]
+    state$values$alaptip <- input[["my-filters-ALAPTIPUS"]]
+    
+    
+  })  
+onRestore(function(state) {
+  vals_alapNev$sum <- state$values$alapn
+  vals_alapkez$sum <- state$values$alapkez
+  vals_befpol$sum <- state$values$befpol
+  vals_letetkez$sum <- state$values$letetkez
+  vals_alaptipus$sum <- state$values$alaptip
+})
   onBookmark(function(state) {
     state$values$szurt_db <- abra_df_react()
     state$values$szurt_kat <-res_mod()
     state$values$szurt_kat
     
   })
+  
+  #selectize module bookmarkozásához
+  observeEvent(input$restore, {
+    
+    updateSelectizeInput(
+      session,
+      inputId = "my-filters-ALAP_NEVE",
+      selected = vals_alapNev$sum
+    )
+    updateSelectizeInput(
+      session,
+      inputId = "my-filters-ALAPKEZELO",
+      selected = vals_alapkez$sum
+    )
+    updateSelectizeInput(
+      session,
+      inputId = "my-filters-BEFPOL_SZERINTI_KATEGORIA",
+      selected = vals_befpol$sum
+    )
+    updateSelectizeInput(
+      session,
+      inputId = "my-filters-LETETKEZELO",
+      selected = vals_letetkez$sum
+    )
+    updateSelectizeInput(
+      session,
+      inputId = "my-filters-ALAPTIPUS",
+      selected = vals_alaptipus$sum
+    )
+  })
+  
+  
+ 
+  #postolashoz
   onRestore(function(state) {
     vals$sum <- state$values$szurt_db
   })
@@ -653,6 +726,7 @@ design <-  function(temp_plot){
   )
 
 
+  
   
 }  
 
