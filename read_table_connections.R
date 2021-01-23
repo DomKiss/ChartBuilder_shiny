@@ -23,24 +23,24 @@ currency_df <- dbReadTable(con, "currency_final")
 # currency_df <- currency_final
 
 
-
-
-base_data %>%
-  
-  ggplot(aes(
-    x = hp,
-    y = sum(cyl) ,
-    label = sum(cyl),
-    color= mpg,
-    shape = factor(cyl),
-    fill = mpg
-  )) +
-  geom_col() + 
-  
-  ggtitle("input$title_text") +
-  xlab("input$x_text") +
-  ylab("input$y_text") +
-  geom_text(nudge_y = 1, color = "black") +
-  
-  theme(legend.position = "left")
+# 
+# 
+# base_data %>%
+#   
+#   ggplot(aes(
+#     x = hp,
+#     y = sum(cyl) ,
+#     label = sum(cyl),
+#     color= mpg,
+#     shape = factor(cyl),
+#     fill = mpg
+#   )) +
+#   geom_col() + 
+#   
+#   ggtitle("input$title_text") +
+#   xlab("input$x_text") +
+#   ylab("input$y_text") +
+#   geom_text(nudge_y = 1, color = "black") +
+#   
+#   theme(legend.position = "left")
 

@@ -661,6 +661,12 @@ onBookmark(function(state) {
     state$values$befpol <- input[["my-filters-BEFPOL_SZERINTI_KATEGORIA"]]
     state$values$letetkez <- input[["my-filters-LETETKEZELO"]]
     state$values$alaptip <- input[["my-filters-ALAPTIPUS"]]
+    state$values$alapfajta <- input[["my-filters-ALAPFAJTA"]]
+    state$values$devizalis <- input[["my-filters-DEVIZALIS_KITETTSEG"]]
+    state$values$foldrajzi <- input[["my-filters-FOLDRAJZI_KITETTSEG"]]
+    state$values$egyeb <- input[["my-filters-EGYEB_KITETTSEG"]]
+    state$values$devizanem <- input[["my-filters-DEVIZANEM"]]
+    state$values$status <- input[["my-filters-STATUSZ"]]
     
     
   })  
@@ -670,13 +676,19 @@ onRestore(function(state) {
   vals_befpol$sum <- state$values$befpol
   vals_letetkez$sum <- state$values$letetkez
   vals_alaptipus$sum <- state$values$alaptip
+  vals_alapfajta$sum <- state$values$alapfajta
+  vals_devizalis$sum <- state$values$devizalis
+  vals_foldrajzi$sum <- state$values$foldrajzi
+  vals_egyeb$sum <- state$values$egyeb
+  vals_devizanem$sum <- state$values$devizanem
+  vals_status$sum <- state$values$status
 })
-  onBookmark(function(state) {
-    state$values$szurt_db <- abra_df_react()
-    state$values$szurt_kat <-res_mod()
-    state$values$szurt_kat
-    
-  })
+  # onBookmark(function(state) {
+  #   state$values$szurt_db <- abra_df_react()
+  #   state$values$szurt_kat <-res_mod()
+  #   state$values$szurt_kat
+  #   
+  # })
   
   #selectize module bookmarkozásához
   observeEvent(input$restore, {
@@ -705,15 +717,48 @@ onRestore(function(state) {
       session,
       inputId = "my-filters-ALAPTIPUS",
       selected = vals_alaptipus$sum
+      
+    )
+    updateSelectizeInput(
+      session,
+      inputId = "my-filters-ALAPFAJTA",
+      selected = vals_alapfajta$sum
+    )
+    updateSelectizeInput(
+      session,
+      inputId = "my-filters-DEVIZALIS_KITETTSEG",
+      selected = vals_devizalis$sum
+    )
+    updateSelectizeInput(
+      session,
+      inputId = "my-filters-FOLDRAJZI_KITETTSEG",
+      selected = vals_foldrajzi$sum
+    )
+    updateSelectizeInput(
+      session,
+      inputId = "my-filters-EGYEB_KITETTSEG",
+      selected = vals_egyeb$sum
+    )
+    updateSelectizeInput(
+      session,
+      inputId = "my-filters-DEVIZANEM",
+      selected = vals_devizanem$sum
+      
+    )
+    updateSelectizeInput(
+      session,
+      inputId = "my-filters-STATUSZ",
+      selected = vals_status$sum
+      
     )
   })
   
   
  
   #postolashoz
-  onRestore(function(state) {
-    vals$sum <- state$values$szurt_db
-  })
+  # onRestore(function(state) {
+  #   vals$sum <- state$values$szurt_db
+  # })
   
   onBookmarked(
     fun = function(url) {
@@ -725,12 +770,9 @@ onRestore(function(state) {
     }
   )
 
-
-  
   
 }  
 
-  
 
 enableBookmarking(store = "server")
 shinyApp(ui, server)
