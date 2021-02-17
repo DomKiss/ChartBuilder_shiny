@@ -1,10 +1,24 @@
 library(shiny)
-library(shinydashboard)
-library(shinydashboardPlus)
 library(shinyWidgets)
-library(treemapify)
 library(dplyr)
 library(ggplot2)
+library(plotly)
+library(httr)
+library(DBI)
+library(dbplyr)
+library(dplyr)
+library(odbc)
+library(plotly)
+library(httr)
+library(shinydashboard)
+library(shinydashboardPlus)
+library(treemapify)
+library(dbplyr)
+library(sqldf)
+library(DT)
+library(colourpicker)
+library(rmarkdown)
+
 
 
 ui <- 
