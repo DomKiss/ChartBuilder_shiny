@@ -21,23 +21,40 @@ server <- function(input, output, session){
   })
   
   #server oldali szurok
-  output$AlapNeveout = renderUI({
-    selectInput(inputId = "AlapNeve",
-                label = "AlapNeve:", 
-                choices = as.character(unique(categories_df$ALAP_NEVE)),
-                selected = "Aberdeen Diversified Growth Alapok Alapja 'B'")
+  output$alapkezelo = renderUI({
+    selectizeInput(inputId = "AlapK",
+                label = "Alapkezelo:", 
+                choices = as.character(unique(categories_df$ALAPKEZELO)),
+                selected = "Accorde Alapkezelő Zrt")
   })
   
   datasub <- reactive({
-    categories_df[categories_df$ALAP_NEVE == input$AlapNeve,]
+    categories_df[categories_df$ALAPKEZELO == input$AlapK,]
+  })
+
+  output$alapneve = renderUI({
+    selectizeInput(inputId = "AlapN", 
+                label = "Alap neve:", 
+                choices = unique(categories_df %>% filter(ALAPKEZELO %in% input$AlapK) %>% select(ALAP_NEVE)),
+                selected = unique(categories_df %>% filter(ALAPKEZELO %in% input$AlapK) %>% select(ALAP_NEVE))[1])
   })
   
-  output$Alapkezeloout = renderUI({
-    selectInput(inputId = "Alapkezelo", 
-                label = "Alapkezelő:", 
-                choices = unique(datasub()[,"ALAPKEZELO"]),
-                selected = unique(datasub()[,"ALAPKEZELO"])[1])
+  datasub2 <- reactive({
+    datasub()[categories_df$ALAP_NEVE == input$AlapN, ]
   })
+  
+  output$letetkezelo = renderUI({
+    selectInput(inputId = "letetK",
+                label = "Letétkezelő:",
+                choices = unique(datasub2()[,"LETETKEZELO"]),
+                selected = unique(datasub2()[,"LETETKEZELO"])[1])
+  })
+  
+  datasub3 <- reactive({
+    datasub()[categories_df$LETETKEZELO == input$letetK, ]
+  })
+  
+
   
  
   
