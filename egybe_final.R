@@ -1331,6 +1331,7 @@ server <- function(input, output, session) {
     #plot_fuggveny()+geom_col(position="dodge", stat="identity")+coord_flip()
   })
   
+  
   #point output
   output$pointplot <- plotly::renderPlotly({
     plot_fuggveny()+geom_point()
