@@ -1,3 +1,4 @@
+
 library(shiny)
 library(shinydashboard)
 library(shinydashboardPlus)
@@ -7,8 +8,9 @@ library(dplyr)
 library(ggplot2)
 
 
+
 ui <- 
-  dashboardPagePlus( collapse_sidebar = TRUE,
+  function(request){dashboardPagePlus( collapse_sidebar = TRUE,
     header = dashboardHeaderPlus(
       fixed = FALSE,
       enable_rightsidebar = TRUE,
@@ -40,9 +42,9 @@ ui <-
       
       fluidRow(
         column(4,
-               
-               bookmarkButton(),
-               
+               bookmarkButton(id = "bookmarkBtn"),
+               textInput(inputId = "bookmarkcim", label="Mentett riport neve", placeholder = "Data Summary"),
+               actionButton("restore", "Mentett szűrők betöltése"),
                tabItems(
                  tabItem(tabName = "szurok", h2("Szűrők"),
                          
@@ -430,10 +432,13 @@ ui <-
     skin = "yellow"
   )
 
+    
+    
+}
 
 
 
-shinyApp(ui = ui, server = server)
+#shinyApp(ui = ui, server = server)
 
 
 

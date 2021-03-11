@@ -5,6 +5,7 @@ library(dplyr)
 library(ggplot2)
 library(plotly)
 library(httr)
+library(shinyscreenshot)
 
 #szurok alkalmazasa categories tablan
 server <- function(input, output, session) {
@@ -652,6 +653,8 @@ design <-  function(temp_plot){
   #Bookmarking code --------------------------
   observeEvent(input$bookmarkBtn, {
     session$doBookmark()
+    screenshot()
+    
   })
   
   

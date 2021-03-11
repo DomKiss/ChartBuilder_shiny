@@ -870,7 +870,7 @@ onRestored(function(state) {
         body = paste0('{\n  \"name\": \"',input$bookmarkcim,'\",\n  \"url\": \"', url, '\"\n}')
       )
       x <- url
-      write.table(x,"srv/shiny-server/myapp/link.txt",sep="\t",row.names=FALSE)
+      #write.table(x,"srv/shiny-server/myapp/link.txt",sep="\t",row.names=FALSE)
     }
   )
   
@@ -880,7 +880,7 @@ onBookmarked(
       output$text <- renderText({ url })
     })
 
-  enableBookmarking(store = "url")  
+  enableBookmarking(store = "server")  
 }  
 
 

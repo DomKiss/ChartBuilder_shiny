@@ -206,7 +206,11 @@ server <- function(input, output, session) {
       multiplier <- ceiling(num_of_colors_needed / num_of_colors_orig)
       final_color_list <- c()
       for (i in 1:multiplier) {
+<<<<<<< HEAD
         final_color_list <- c(final_color_list, orig_color_list)
+=======
+          final_color_list <- c(final_color_list, orig_color_list)
+>>>>>>> 03062682a4b6b9e1ba60d313b2ee95bc54998afe
       }
       final_color_list <- final_color_list[1:num_of_colors_needed]
       
@@ -228,14 +232,20 @@ server <- function(input, output, session) {
           colors = final_color_list, #fent van összerakva!!!
           type = 'bar'
         )
+<<<<<<< HEAD
       
       
       
+=======
+  
+      
+       
+>>>>>>> 03062682a4b6b9e1ba60d313b2ee95bc54998afe
       return(finished_plot)
     }
   
   
-  
+
   
   
   
