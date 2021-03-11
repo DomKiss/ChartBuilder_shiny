@@ -9,38 +9,19 @@ con <- dbConnect(drv = odbc::odbc(),
                  Database = "project_bamosz ",
                  uid = "backend.datavis",
                  pwd = "Vizsla123",
-                 port = 1505)
-
+                 port = 1506)
 
 dates_df <- dbReadTable(con, "dates_final")
 timeseries_df <- dbReadTable(con, "timeseries_final")
 categories_df <- dbReadTable(con, "categories_final")
 currency_df <- dbReadTable(con, "currency_final")
 
-# dates_df <- dates_final
-# timeseries_df <- timeseries_final
-# categories_df <- categories_final
-# currency_df <- currency_final
 
 
-# 
-# 
-# base_data %>%
-#   
-#   ggplot(aes(
-#     x = hp,
-#     y = sum(cyl) ,
-#     label = sum(cyl),
-#     color= mpg,
-#     shape = factor(cyl),
-#     fill = mpg
-#   )) +
-#   geom_col() + 
-#   
-#   ggtitle("input$title_text") +
-#   xlab("input$x_text") +
-#   ylab("input$y_text") +
-#   geom_text(nudge_y = 1, color = "black") +
-#   
-#   theme(legend.position = "left")
+
+dbWriteTable(con, "mtcars", mtcars[1:3,], append=T)
+temp_df <- dbReadTable(con, "mtcars")
+
+sql_string <- "DELETE FROM mtcars WHERE row_names LIKE 'Mazda RX4%';"
+dbSendStatement(con, sql_string)
 

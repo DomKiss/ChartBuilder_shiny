@@ -4,12 +4,12 @@ library(shinydashboardPlus)
 library(shinyWidgets)
 
 
-ui <-
-  dashboardPagePlus(
+ui <- 
+  dashboardPagePlus( collapse_sidebar = TRUE,
     header = dashboardHeaderPlus(
       fixed = FALSE,
       enable_rightsidebar = TRUE,
-      rightSidebarIcon = "gears",
+      rightSidebarIcon = "filter",
       left_menu =
         tagList(
           dropdownBlock(
@@ -20,16 +20,30 @@ ui <-
         )
     ),
     
-    sidebar = dashboardSidebar( ),
+    sidebar = dashboardSidebar( 
+      collapsed=TRUE,
+      
+      sidebarMenu(
+        menuItem("Victim", tabName = "victim", icon=icon('gears')
+                 
+                 
+                 
+                 
+        ),
+        menuItem("Trafficker", tabName = "trafficker")
+      ),
+      
+      br()
+      
+    ),
     
     body = dashboardBody(
       setShadow(class = "dropdown-menu"),
-      br(),
-      br(),
+      
       tabsetPanel(
         id = "chart_tabset", 
         selected = NULL, 
-        type ="pills", #"tabs",
+        type ="pills", #lehetne még "tabs" is
         tabPanel(
           'Bar chart', 
           plotly::plotlyOutput('Alap_arfolyama_colplot')
@@ -39,15 +53,27 @@ ui <-
           "empty"
         )
       
-      )
+      ),
+      
+      tabItems(
+        tabItem(tabName = "victim",
+                h2("Victim tab")
+        ),
 
+        tabItem(tabName = "trafficker",
+                h2("Trafficker tab")
+        )
+      ),
+
+      br()
+      
     ),
     
   
     rightsidebar =
       rightSidebar(
         background = "dark",
-        width = 300,
+        #width = 300,
         rightSidebarTabContent(
           id = 1,
           title = "Általános",
@@ -169,7 +195,7 @@ ui <-
 
 shinyApp(ui = ui, server = server)
 
-getwd()
+
 
 # title = 'Cím',
 # textInput('title_text',
