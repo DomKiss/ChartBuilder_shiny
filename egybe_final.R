@@ -112,7 +112,8 @@ ui <-
                     label = 'Dátum kivalasztasa',
                     start = "2020-08-03",
                     end = "2020-08-05"
-                  )
+                  ),
+                  actionButton("Datum_ok", "OK")
                 ),
                 
                 boxPlus(
@@ -909,6 +910,21 @@ server <- function(input, output, session) {
     sqldf::sqldf(
       paste(
         "select * FROM timeseries_df WHERE DATUM >='",
+        "2020-08-03",
+        "' AND DATUM<=",
+        "'",
+        "2020-08-05",
+        "'",
+        "",
+        sep = ""
+      )
+    )
+  })
+  
+  react_ts <- eventReactive(input$Datum_ok, {
+    sqldf::sqldf(
+      paste(
+        "select * FROM timeseries_df WHERE DATUM >='",
         input$dateRange[1],
         "' AND DATUM<=",
         "'",
@@ -919,6 +935,8 @@ server <- function(input, output, session) {
       )
     )
   })
+  
+  
   
   
   # leszurt ISINek kivalasztasa a datumra leszurt timeseries tablabol
