@@ -20,13 +20,12 @@ library(colourpicker)
 library(rmarkdown)
 library(htmlwidgets)
 
-jscode <-
-  "Shiny.addCustomMessageHandler('mymessage', function(message) {window.location = 'http://befalapok.vizu-tech.com/chartbuilder';});"
 
 ui <-
   function(request) {
     dashboardPagePlus(
       tags$head(tags$script(jscode)),
+      #verbatimTextOutput("urlText"),
       collapse_sidebar = TRUE,
       header = dashboardHeaderPlus(
         fixed = FALSE,
@@ -725,11 +724,10 @@ ui <-
             , style = "position:fixed; overflow-y:scroll; max-height:100%"),
             textOutput("text"),
         
-            mainPanel(
-              h3("clientData values"),
-              verbatimTextOutput("clientdataText"),
-              plotOutput("myplot")
-            )
+            # mainPanel(
+            #   h3("clientData values"),
+            #   verbatimTextOutput("clientdataText"),
+            # )
             
           ))
         
@@ -873,12 +871,9 @@ library(dbplyr)
 library(sqldf)
 library(DT)
 library(colourpicker)
-#options(shiny.sanitize.errors = FALSE)
-jscode <- "Shiny.addCustomMessageHandler('mymessage', function(message) { window.location = message;});"
 
 #szurok alkalmazasa categories tablan
 server <- function(input, output, session) {
-  session$sendCustomMessage("mymessage", "mymessage")
   #bookmarkhoz valtozo
   vals <- reactiveValues()
   vals_alapNev <- reactiveValues()
@@ -1967,18 +1962,119 @@ server <- function(input, output, session) {
   # clientdata mentese
   cdata <- session$clientData
   
-  #url_search paraméter kiszedése clientdatabol
-  output$clientdataText <- renderText({
-    session$clientData$url_search
-  })
+ 
   
   
-  server <- function(input, output, session) {
-    url <- "http://befalapok.vizu-tech.com/chartbuilder"
-    session$sendCustomMessage("mymessage", url)
+   # url_kiszedett <- reactive({
+   #   paste0(
+   #     session$clientData$url_hostname,
+   #     session$clientData$url_pathname,
+   #     session$clientData$url_search
+   #   )
+   # })
+  url_splitter <- function(url) {
+    proba_link_splited <-  stringr::str_split(url, "\\&")
+    link_state_category <- proba_link_splited[[1]][1]
+    link_and_state_id <- paste(unlist(stringr::str_split(as.character(link_state_category), "\\?"))[1],
+                               unlist(stringr::str_split(as.character(link_state_category), "\\?"))[2], sep="?")
+    link_no_state_id <-
+      unlist(stringr::str_split(as.character(link_state_category), "\\?"))[1]
+    
+    companyID <- ifelse(stringr::str_detect(url, "state_id") == TRUE,
+                        unlist(stringr::str_split(as.character(link_state_category), "\\?"))[3],
+                        unlist(stringr::str_split(as.character(link_state_category), "\\?"))[2])
+    
+    companyID <- (stringr::str_split(companyID, "\\=") %>% unlist)[2]
+    
+    uid <-
+      ifelse(
+        stringr::str_detect(url, "state_id") == TRUE,
+        proba_link_splited[[1]][2],
+        proba_link_splited[[1]][2]
+      )
+    uid <- (stringr::str_split(uid, "\\=") %>% unlist)[2]
+    category_id <-
+      ifelse(
+        stringr::str_detect(url, "state_id") == TRUE,
+        proba_link_splited[[1]][3],
+        proba_link_splited[[1]][3]
+      )
+    category_id <- (stringr::str_split(category_id, "\\=") %>% unlist)[2]
+    vegso_link <-
+      ifelse(
+        stringr::str_detect(url, "state_id") == TRUE,
+        link_and_state_id,
+        link_no_state_id
+      )
+    return(c(companyID, uid, category_id, vegso_link))
   }
-  
+  url_splitter <- function(url) {
+    proba_link_splited <-  stringr::str_split(url, "\\&")
+    link_state_category <- proba_link_splited[[1]][1]
+    link_and_state_id <- paste(unlist(stringr::str_split(as.character(link_state_category), "\\?"))[1],
+                               unlist(stringr::str_split(as.character(link_state_category), "\\?"))[2], sep="?")
+    link_no_state_id <-
+      unlist(stringr::str_split(as.character(link_state_category), "\\?"))[1]
+    
+    companyID <- ifelse(stringr::str_detect(url, "state_id") == TRUE,
+                        unlist(stringr::str_split(as.character(link_state_category), "\\?"))[3],
+                        unlist(stringr::str_split(as.character(link_state_category), "\\?"))[2])
+    
+    companyID <- (stringr::str_split(companyID, "\\=") %>% unlist)[2]
+    
+    uid <-
+      ifelse(
+        stringr::str_detect(url, "state_id") == TRUE,
+        proba_link_splited[[1]][2],
+        proba_link_splited[[1]][2]
+      )
+    uid <- (stringr::str_split(uid, "\\=") %>% unlist)[2]
+    category_id <-
+      ifelse(
+        stringr::str_detect(url, "state_id") == TRUE,
+        proba_link_splited[[1]][3],
+        proba_link_splited[[1]][3]
+      )
+    category_id <- (stringr::str_split(category_id, "\\=") %>% unlist)[2]
+    vegso_link <-
+      ifelse(
+        stringr::str_detect(url, "state_id") == TRUE,
+        link_and_state_id,
+        link_no_state_id
+      )
+    return(c(companyID, uid, category_id, vegso_link))
+  }
+   
+  atiranyitsak <-
+    reactive({
+      stringr::str_detect(session$clientData$url_search, "companyId")
+    })
+  observeEvent(atiranyitsak(), {
+    if (atiranyitsak() == TRUE) {
+      session$sendCustomMessage("mymessage",
+                                url_splitter(
+                                  paste0(
+                                    session$clientData$url_protocol,
+                                    "//",
+                                    session$clientData$url_hostname,
+                                    session$clientData$url_pathname,
+                                    session$clientData$url_search
+                                    
+                                  )
+                                )[4])
+    }
+  })
+
+   
   #enableBookmarking(store = "server")
+  # output$clientdataText <- renderText({
+  #   cnames <- names(cdata)
+  #   
+  #   allvalues <- lapply(cnames, function(name) {
+  #     paste(name, cdata[[name]], sep = " = ")
+  #   })
+  #   paste(allvalues, collapse = "\n")
+  # })
 }
 
 shinyApp(ui, server, enableBookmarking = "server")
