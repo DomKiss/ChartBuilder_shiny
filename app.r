@@ -1,4 +1,5 @@
 library(shiny)
+library(bsearchtools)
 library(shinyWidgets)
 library(dplyr)
 library(ggplot2)
@@ -11,7 +12,7 @@ library(odbc)
 library(plotly)
 library(httr)
 library(shinydashboard)
-library(shinydashboardPlus)
+#library(shinydashboardPlus)
 library(treemapify)
 library(dbplyr)
 library(sqldf)
@@ -19,12 +20,22 @@ library(DT)
 library(colourpicker)
 library(rmarkdown)
 library(htmlwidgets)
+library(remotes) 
+library(extrafont)
+#install.packages("https://cran.r-project.org/src/contrib/Archive/shinydashboardPlus/shinydashboardPlus_0.7.5.tar.gz", repos=NULL, type="source")
+font_import()
 
+
+load("/srv/shiny-server/chartbuilder/.RData")
+#timeseries_df <- mutate(head(timeseries_df,10000), DATUM = as.character(DATUM))
+
+
+cleanMem <- function(n=10) { for (i in 1:n) gc() }
 
 ui <-
   function(request) {
     dashboardPagePlus(
-      tags$head(tags$script(jscode)),
+      #tags$head(tags$script(jscode)),
       #verbatimTextOutput("urlText"),
       collapse_sidebar = TRUE,
       header = dashboardHeaderPlus(
@@ -46,29 +57,25 @@ ui <-
                   label = "Mentett riport neve",
                   placeholder = "Tetszőleges elnevezés"
                 ),
-                bookmarkButton(
-                  id = "bookmarkBtn",
-                  icon = icon("save"),
-                  label = "Mentés"
-                ),
+                bookmarkButton(id="bookmarkBtn",label="Mentés"),
                 br()
               )
-              
-              #actionButton("restore", "Mentett szűrők betöltése"),
-            ),
-            dropdownBlock(
-              id = "download_dropdown",
-              title = "Letöltés",
-              icon = icon("download"),
-              badgeStatus = NULL,
-              
-              column(
-                width = 12,
-                downloadButton(outputId = 'downloadPlot', label = 'Letöltés'),
-                br()
-              )
-              
             )
+            #actionButton("restore", "Mentett szűrők betöltése"),
+            # ),
+            # dropdownBlock(
+            #   id = "download_dropdown",
+            #   title = "Letöltés",
+            #   icon = icon("download"),
+            #   badgeStatus = NULL,
+            #   
+            #   column(
+            #     width = 12,
+            #     downloadButton(outputId = 'downloadPlot', label = 'Letöltés'),
+            #     br()
+            #   )
+            #   
+            # )
           )
       ),
       
@@ -113,8 +120,8 @@ ui <-
                   dateRangeInput(
                     'dateRange',
                     label = 'Dátum kivalasztasa',
-                    start = "2020-08-03",
-                    end = "2020-08-05"
+                    start = as.Date(max(dates_df$FORG_DATUM, na.rm=TRUE))-60,
+                    end = max(dates_df$FORG_DATUM, na.rm=TRUE)
                   )
                 ),
                 
@@ -176,7 +183,7 @@ ui <-
                           "Napi"
                         ),
                         selected =
-                          "Napi"
+                          "UNAP_HONAP"
                       ),
                     ),
                     conditionalPanel(
@@ -185,13 +192,13 @@ ui <-
                         "osszevontdatumsz",
                         "Dátumszűrő",
                         c(
-                          "Éves összevonás" = "currentyear",
+                          "Éves összevonás" = "AKT_EV",
                           "Negyedéves összevonás" =
-                            "currentQ",
+                            "AKT_NEGYEDEV",
                           "Havi összevonás" =
-                            "currentmonth",
+                            "AKT_HONAP",
                           "Heti összevonás" =
-                            "currentweek"
+                            "AKT_HET"
                         )
                       )
                     )
@@ -321,9 +328,17 @@ ui <-
                       "font_type",
                       "Betűtípus",
                       selected = 'F',
-                      choices = c("Times", "Calibri", "Helvetica", "Open-Sans")
+                      choices = extrafont::fonts()[112:length(extrafont::fonts())]
                     ),
-                    colourpicker::colourInput("col_base", "Háttér szín", value = "white")
+                    colourpicker::colourInput("col_base", "Háttér szín", value = "white"),
+                    selectInput(
+                      "axis_order",
+                      "Rendezés",
+                      choices = c(
+                        "betűrendben/időrendben" = 0, 
+                        "érték szerint növekvő" = 1, 
+                        "érték szerint csökkenő" = -1)
+                    )
                   )),
                   fluidRow(
                     column(
@@ -721,9 +736,10 @@ ui <-
               
             )
             
+            
             , style = "position:fixed; overflow-y:scroll; max-height:100%"),
             textOutput("text"),
-        
+            
             # mainPanel(
             #   h3("clientData values"),
             #   verbatimTextOutput("clientdataText"),
@@ -872,7 +888,7 @@ library(sqldf)
 library(DT)
 library(colourpicker)
 
-#szurok alkalmazasa categories tablan
+
 server <- function(input, output, session) {
   #bookmarkhoz valtozo
   vals <- reactiveValues()
@@ -903,7 +919,7 @@ server <- function(input, output, session) {
   vals_status$sum <- NULL
   
   
-  
+  #szurok alkalmazasa categories tablan  
   res_mod <- callModule(
     module = selectizeGroupServer,
     id = "my-filters",
@@ -928,42 +944,40 @@ server <- function(input, output, session) {
   #beadom kulon reaktiv valtozoba a datumra szurt timeseries_df-et, es
   #így mar csak akkor kell ujratoltenie, ha datumban van valtozas
   
+  
   react_ts <- reactive({
-    sqldf::sqldf(
-      paste(
-        "select * FROM timeseries_df WHERE DATUM >='",
-        input$dateRange[1],
-        "' AND DATUM<=",
-        "'",
-        input$dateRange[2],
-        "'",
-        "",
-        sep = ""
-      )
-    )
+    bsearchtools::DFI.subset(timeseries_dfi,
+               AND(RG("DATUM",
+                  input$dateRange[1], input$dateRange[2]), 
+               IN("ISIN_KOD", as.character(res_mod()$ISIN_KOD)))) %>%
+      select(ISIN_KOD,!!!input$valuevalaszt, DATUM)
+    
   })
   
   
   # leszurt ISINek kivalasztasa a datumra leszurt timeseries tablabol
-  react_isin_szurt <- reactive({
-    react_ts() %>% filter(ISIN_KOD %in% res_mod()$ISIN_KOD)
-  })
+  # react_isin_szurt <- reactive({
+  #   react_ts() %>% filter(ISIN_KOD %in% res_mod()$ISIN_KOD)
+  # })
   
-  #ISIN kod, kivalasztott timeseries ertek kivalasztasa egy tablaba, majd ezt fogom mergelni a categories_df-hez
-  react_selected <- reactive({
-    react_isin_szurt() %>% select(ISIN_KOD,!!!input$valuevalaszt, DATUM)
-  })
+  #ISIN kod, kivalasztott timeseries ertek kivalasztasa egy tablaba,
+  #majd ezt fogom mergelni a categories_df-hez
+  # react_selected <- reactive({
+  #   react_isin_szurt() %>% select(ISIN_KOD,!!!input$valuevalaszt, DATUM)
+  # })
   
   #leszurom a categories tablat
-  react_categories_szurt_ISIN <- reactive({
-    categories_df %>% filter(ISIN_KOD %in% res_mod()$ISIN_KOD)
-  })
-  
+  # react_categories_szurt_ISIN <- reactive({
+  #   categories_df %>% 
+  #     filter(ISIN_KOD %in% res_mod()$ISIN_KOD)
+  # })
+  # 
   #########################kerdes: csinalhatnam azt hogy az elejen mergelem az egeszet, igy utolag mar nem kell uj mergelest csinalni csak selectet
   
   #merge abra_df (mergelem a kategoria szukseges oszlopat a timeseries oszlopokkal),
-  #ha datum a tengely, akkor itt ne válassza ki mégegyszer, mert akkro egy uresre kicserelne a mar kivalasztott datum oszlopot, ezert van az ifelse elagazas
-  abra_df_react_dates_df_nelkul <- reactive(
+  #ha datum a tengely, akkor itt ne válassza ki mégegyszer, mert akkor egy uresre kicserelne
+  #a mar kivalasztott datum oszlopot, ezert van az ifelse elagazas
+  abra_df_react_dates_df_nelkul <- reactive({
     merge(
       if (input$tengelyvalaszt == "DATUM") {
         res_mod() %>% select(ISIN_KOD,!!!input$kategoriavalaszt)
@@ -972,11 +986,11 @@ server <- function(input, output, session) {
                              !!!input$kategoriavalaszt,
                              !!!input$tengelyvalaszt)
       },
-      react_selected(),
+      react_ts(),
       by.x = "ISIN_KOD",
       by.y = "ISIN_KOD"
     ) %>% select(!ISIN_KOD)
-  )
+  })
   
   
   
@@ -1062,6 +1076,7 @@ server <- function(input, output, session) {
     #DT::renderDT(abra_df_react())
     DT::renderDT(
       DT::datatable(
+        #abra_df_react(),
         abra_df_react(),
         selection = "none",
         extensions = 'Buttons',
@@ -1214,7 +1229,7 @@ server <- function(input, output, session) {
         mode_val <- "markers"
         fill_val <- "none"
       } else if (mode == "line") {
-        mode_val <- "lines"
+        mode_val <- "lines+markers"
         fill_val <- "none"
       } else if (mode == "area") {
         mode_val <- "none"
@@ -1231,16 +1246,10 @@ server <- function(input, output, session) {
               if (input$tengelyvalaszt == "DATUM") {
                 get(x)
               } else {
-                #get(x)
-                #print(get(x))
-                #print(get(y))
-                #print( aggregate_values_for_order(get(x),get(y)) )
                 
-                #get(x)
                 reorder (factor(get(x), levels = unique(c(
                   as.character(get(x))
-                ))) ,-get(y), FUN = sum)
-                
+                ))) , as.numeric(input$axis_order) * get(y), FUN = sum)
                 
               },
             y = ~ get(y),
@@ -1256,7 +1265,18 @@ server <- function(input, output, session) {
             #fent van összerakva!!!
             type = 'bar',
             orientation = 'v'
-          )
+          ) %>% 
+            plotly::config(
+              toImageButtonOptions = list(format = "png", scale=20),
+              displaylogo = FALSE,
+              modeBarButtonsToRemove = list(
+                'sendDataToCloud',
+                'lasso2d',
+                'hoverClosestCartesian',
+                'hoverCompareCartesian',
+                'toggleSpikelines'
+              )
+            )
           
         } else if (chart_type == 'sav') {
           plotly::plot_ly(
@@ -1266,16 +1286,10 @@ server <- function(input, output, session) {
               if (input$tengelyvalaszt == "DATUM") {
                 get(x)
               } else {
-                #get(x)
-                #print(get(x))
-                #print(get(y))
-                #print( aggregate_values_for_order(get(x),get(y)) )
                 
-                #get(y)
                 reorder (factor(get(x), levels = unique(c(
                   as.character(get(x))
-                ))) ,-get(y), FUN = sum)
-                
+                ))) , as.numeric(input$axis_order) * get(y), FUN = sum)
                 
               },
             color = ~ get(fill),
@@ -1290,7 +1304,18 @@ server <- function(input, output, session) {
             #fent van összerakva!!!
             type = 'bar',
             orientation = 'v'
-          )
+          ) %>% 
+            plotly::config(
+              toImageButtonOptions = list(format = "png", scale=20),
+              displaylogo = FALSE,
+              modeBarButtonsToRemove = list(
+                'sendDataToCloud',
+                'lasso2d',
+                'hoverClosestCartesian',
+                'hoverCompareCartesian',
+                'toggleSpikelines'
+              )
+            )
           
         } else if (chart_type == "pie") {
           plotly::plot_ly(
@@ -1314,14 +1339,26 @@ server <- function(input, output, session) {
                   input$col_12
                 )
               ),
-            sort = T,
+            sort = ifelse(input$axis_order == 0, FALSE, TRUE),
             textfont = list(
               color = input$label_color,
               size = input$label_size,
               family = input$font_type
             ),
-            texttemplate = "%{label}: %{value} <br>(%{percent})"
-          )
+            #texttemplate = "%{label}: %{value} <br>(%{percent})"
+            texttemplate = "%{value} <br>(%{percent})"
+          ) %>% 
+            plotly::config(
+              toImageButtonOptions = list(format = "png", scale=20),
+              displaylogo = FALSE,
+              modeBarButtonsToRemove = list(
+                'sendDataToCloud',
+                'lasso2d',
+                'hoverClosestCartesian',
+                'hoverCompareCartesian',
+                'toggleSpikelines'
+              )
+            )
           
         } else if (chart_type == "scatter") {
           plotly::plot_ly(
@@ -1358,7 +1395,18 @@ server <- function(input, output, session) {
             connectgaps = TRUE,
             opacity = 1
             #groupnorm = 'percent'
-          )
+          ) %>% 
+            plotly::config(
+              toImageButtonOptions = list(format = "png", scale=20),
+              displaylogo = FALSE,
+              modeBarButtonsToRemove = list(
+                'sendDataToCloud',
+                'lasso2d',
+                'hoverClosestCartesian',
+                'hoverCompareCartesian',
+                'toggleSpikelines'
+              )
+            )
           
         }
       
@@ -1705,7 +1753,8 @@ server <- function(input, output, session) {
   observeEvent(input$bookmarkBtn, {
     session$doBookmark()
   })
-  
+  setBookmarkExclude("bookmarkBtn")
+  # 
   # onBookmark(function(state) {
   #   alapk_valtozo <- input[["my-filters-ALAP_NEVE"]]
   #   state$values$alK <- alapk_valtozo
@@ -1734,13 +1783,26 @@ server <- function(input, output, session) {
     state$values$egyeb <- input[["my-filters-EGYEB_KITETTSEG"]]
     state$values$devizanem <- input[["my-filters-DEVIZANEM"]]
     state$values$status <- input[["my-filters-STATUSZ"]]
-    
-    
   })
   
+  
+  # onRestore(function(state) {
+  #   vals_alapNev$sum <- state$values$alapn
+  #   vals_alapkez$sum <- state$values$alapkez
+  #   vals_befpol$sum <- state$values$befpol
+  #   vals_letetkez$sum <- state$values$letetkez
+  #   vals_alaptipus$sum <- state$values$alaptip
+  #   vals_alapfajta$sum <- state$values$alapfajta
+  #   vals_devizalis$sum <- state$values$devizalis
+  #   vals_foldrajzi$sum <- state$values$foldrajzi
+  #   vals_egyeb$sum <- state$values$egyeb
+  #   vals_devizanem$sum <- state$values$devizanem
+  #   vals_status$sum <- state$values$status
+  # })
   onRestore(function(state) {
-    vals_alapNev$sum <- state$values$alapn
+    vals$sum <- state$values$szurt_db
     vals_alapkez$sum <- state$values$alapkez
+    vals_alapNev$sum <- state$values$alapn
     vals_befpol$sum <- state$values$befpol
     vals_letetkez$sum <- state$values$letetkez
     vals_alaptipus$sum <- state$values$alaptip
@@ -1751,86 +1813,79 @@ server <- function(input, output, session) {
     vals_devizanem$sum <- state$values$devizanem
     vals_status$sum <- state$values$status
   })
+  
+  
   onRestored(function(state) {
+    
     updateSelectizeInput(
       session,
       inputId = "my-filters-ALAPKEZELO",
       selected = vals_alapkez$sum,
-      choices = categories_df$ALAPKEZELO,
-      server = TRUE
+      choices = categories_df$ALAPKEZELO
     )
     updateSelectizeInput(
       session,
       inputId = "my-filters-ALAP_NEVE",
       selected = vals_alapNev$sum,
-      choices = categories_df$ALAP_NEVE,
-      server = TRUE
+      choices = categories_df$ALAP_NEVE
     )
     updateSelectizeInput(
       session,
       inputId = "my-filters-BEFPOL_SZERINTI_KATEGORIA",
       selected = vals_befpol$sum,
-      choices = categories_df$BEFPOL_SZERINTI_KATEGORIA,
-      server = TRUE
+      choices = categories_df$BEFPOL_SZERINTI_KATEGORIA
     )
     updateSelectizeInput(
       session,
       inputId = "my-filters-LETETKEZELO",
       selected = vals_letetkez$sum,
-      choices = categories_df$LETETKEZELO,
-      server = TRUE
+      choices = categories_df$LETETKEZELO
     )
     updateSelectizeInput(
       session,
       inputId = "my-filters-ALAPTIPUS",
       selected = vals_alaptipus$sum,
-      choices = categories_df$ALAPTIPUS,
-      server = TRUE
+      choices = categories_df$ALAPTIPUS
       
     )
     updateSelectizeInput(
       session,
       inputId = "my-filters-ALAPFAJTA",
       selected = vals_alapfajta$sum,
-      choices = categories_df$ALAPFAJTA,
-      server = TRUE
+      choices = categories_df$ALAPFAJTA
     )
     updateSelectizeInput(
       session,
       inputId = "my-filters-DEVIZALIS_KITETTSEG",
       selected = vals_devizalis$sum,
-      choices = categories_df$DEVIZALIS_KITETTSEG,
-      server = TRUE
+      choices = categories_df$DEVIZALIS_KITETTSEG
     )
     updateSelectizeInput(
       session,
       inputId = "my-filters-FOLDRAJZI_KITETTSEG",
       selected = vals_foldrajzi$sum,
-      choices = categories_df$FOLDRAJZI_KITETTSEG,
-      server = TRUE
+      choices = categories_df$FOLDRAJZI_KITETTSEG
     )
     updateSelectizeInput(
       session,
       inputId = "my-filters-EGYEB_KITETTSEG",
       selected = vals_egyeb$sum,
-      choices = categories_df$EGYEB_KITETTSEG,
-      server = TRUE
+      choices = categories_df$EGYEB_KITETTSEG
     )
     updateSelectizeInput(
       session,
       inputId = "my-filters-DEVIZANEM",
       selected = vals_devizanem$sum,
-      choices = categories_df$DEVIZANEM,
-      server = TRUE
+      choices = categories_df$DEVIZANEM
     )
     updateSelectizeInput(
       session,
       inputId = "my-filters-STATUSZ",
       selected = vals_status$sum,
-      choices = categories_df$STATUSZ,
-      server = TRUE
+      choices = categories_df$STATUSZ
     )
   })
+  
   
   
   #selectize module bookmarkozásához
@@ -1915,32 +1970,40 @@ server <- function(input, output, session) {
   #   vals$sum <- state$values$szurt_db
   # })
   
+  atiranyitsak <-
+    reactive({
+      stringr::str_detect(session$clientData$url_search, "companyId")
+    })
+  values <- reactiveValues(link_react="http://befalapok.vizu-tech.com/chartbuilder/?_state_id_=3a768951b3451c2d&companyId=Qomj7lJpGfPOoIgu&uid=qomj7lJpGfPOoIgu&categoryId=pDy98.W1BBdYbcl~")
+  observeEvent(atiranyitsak()==TRUE, {
+    values$link_react <- paste0(
+      session$clientData$url_protocol,
+      "//",
+      session$clientData$url_hostname,
+      session$clientData$url_pathname,
+      session$clientData$url_search)
+    
+  })
+  
+  
   onBookmarked(
     fun = function(url) {
       POST(
-        url = "https://vizutechadmin.hunelco.com/v1/power_bi/Qomj7lJpGfPOoIgu/reports",
-        content_type_json(),
-        body = paste0(
-          '{\n  \"name\": \"',
-          input$bookmarkcim,
-          '\",\n  \"url\": \"',
-          url,
-          '\"\n}'
-        )
+        url = paste0("https://vizutechadmin.hunelco.com/v1/power_bi/", url_splitter(values$link_react)[1], "/reports"),
+        content_type("multipart/form-data"),
+        body = list(data=paste0(
+          '{\n  \"name\": \"', as.character(input$bookmarkcim), 
+          '\",\n  \"url\": \"', url, 
+          '\",\n  \"categoryId\": \"', url_splitter(values$link_react)[3], 
+          '\",\n  \"type\": \"', "shiny", '\"\n}')), encode="multipart"
       )
-      x <- url
+      # x <- url
       #write.table(x,"srv/shiny-server/myapp/link.txt",sep="\t",row.names=FALSE)
     }
   )
   
   #csak, hogy lássam az urlt
-  onBookmarked(
-    fun = function(url) {
-      output$text <- renderText({
-        url
-      })
-    }
-  )
+  #onBookmarked( fun = function(url) { output$text <- renderText({	 class(timeseries_df$DATUM)    }) } )
   
   
   Sys.setenv("plotly_username" = "vizutech")
@@ -1952,51 +2015,51 @@ server <- function(input, output, session) {
       "shiny_plot.png"
     },
     content = function(file) {
-      plotly_IMAGE(active_chart(), out_file = file, scale = 10)
-    }
+      plotly_IMAGE(active_chart(), out_file = file, scale = 5)
+    }, contentType="image/png"
   )
   
   
-
+  
   
   # clientdata mentese
   cdata <- session$clientData
   
- 
   
   
-   # url_kiszedett <- reactive({
-   #   paste0(
-   #     session$clientData$url_hostname,
-   #     session$clientData$url_pathname,
-   #     session$clientData$url_search
-   #   )
-   # })
+  
+  # url_kiszedett <- reactive({
+  #   paste0(
+  #     session$clientData$url_hostname,
+  #     session$clientData$url_pathname,
+  #     session$clientData$url_search
+  #   )
+  # })
   url_splitter <- function(url) {
     proba_link_splited <-  stringr::str_split(url, "\\&")
     link_state_category <- proba_link_splited[[1]][1]
-    link_and_state_id <- paste(unlist(stringr::str_split(as.character(link_state_category), "\\?"))[1],
+    link_and_state_id <- paste(unlist(stringr::str_split(as.character(link_state_category), "\\?"))[[1]][1],
                                unlist(stringr::str_split(as.character(link_state_category), "\\?"))[2], sep="?")
     link_no_state_id <-
       unlist(stringr::str_split(as.character(link_state_category), "\\?"))[1]
     
     companyID <- ifelse(stringr::str_detect(url, "state_id") == TRUE,
-                        unlist(stringr::str_split(as.character(link_state_category), "\\?"))[3],
-                        unlist(stringr::str_split(as.character(link_state_category), "\\?"))[2])
+                        proba_link_splited[[1]][2],
+                        unlist(stringr::str_split(as.character(proba_link_splited[[1]][1]), "\\?"))[2])
     
     companyID <- (stringr::str_split(companyID, "\\=") %>% unlist)[2]
     
     uid <-
       ifelse(
         stringr::str_detect(url, "state_id") == TRUE,
-        proba_link_splited[[1]][2],
+        proba_link_splited[[1]][3],
         proba_link_splited[[1]][2]
       )
     uid <- (stringr::str_split(uid, "\\=") %>% unlist)[2]
     category_id <-
       ifelse(
         stringr::str_detect(url, "state_id") == TRUE,
-        proba_link_splited[[1]][3],
+        proba_link_splited[[1]][4],
         proba_link_splited[[1]][3]
       )
     category_id <- (stringr::str_split(category_id, "\\=") %>% unlist)[2]
@@ -2008,47 +2071,9 @@ server <- function(input, output, session) {
       )
     return(c(companyID, uid, category_id, vegso_link))
   }
-  url_splitter <- function(url) {
-    proba_link_splited <-  stringr::str_split(url, "\\&")
-    link_state_category <- proba_link_splited[[1]][1]
-    link_and_state_id <- paste(unlist(stringr::str_split(as.character(link_state_category), "\\?"))[1],
-                               unlist(stringr::str_split(as.character(link_state_category), "\\?"))[2], sep="?")
-    link_no_state_id <-
-      unlist(stringr::str_split(as.character(link_state_category), "\\?"))[1]
-    
-    companyID <- ifelse(stringr::str_detect(url, "state_id") == TRUE,
-                        unlist(stringr::str_split(as.character(link_state_category), "\\?"))[3],
-                        unlist(stringr::str_split(as.character(link_state_category), "\\?"))[2])
-    
-    companyID <- (stringr::str_split(companyID, "\\=") %>% unlist)[2]
-    
-    uid <-
-      ifelse(
-        stringr::str_detect(url, "state_id") == TRUE,
-        proba_link_splited[[1]][2],
-        proba_link_splited[[1]][2]
-      )
-    uid <- (stringr::str_split(uid, "\\=") %>% unlist)[2]
-    category_id <-
-      ifelse(
-        stringr::str_detect(url, "state_id") == TRUE,
-        proba_link_splited[[1]][3],
-        proba_link_splited[[1]][3]
-      )
-    category_id <- (stringr::str_split(category_id, "\\=") %>% unlist)[2]
-    vegso_link <-
-      ifelse(
-        stringr::str_detect(url, "state_id") == TRUE,
-        link_and_state_id,
-        link_no_state_id
-      )
-    return(c(companyID, uid, category_id, vegso_link))
-  }
-   
-  atiranyitsak <-
-    reactive({
-      stringr::str_detect(session$clientData$url_search, "companyId")
-    })
+  
+  
+  
   observeEvent(atiranyitsak(), {
     if (atiranyitsak() == TRUE) {
       session$sendCustomMessage("mymessage",
@@ -2064,17 +2089,10 @@ server <- function(input, output, session) {
                                 )[4])
     }
   })
-
-   
-  #enableBookmarking(store = "server")
-  # output$clientdataText <- renderText({
-  #   cnames <- names(cdata)
-  #   
-  #   allvalues <- lapply(cnames, function(name) {
-  #     paste(name, cdata[[name]], sep = " = ")
-  #   })
-  #   paste(allvalues, collapse = "\n")
-  # })
+  
+  
+  
+  
 }
 
 shinyApp(ui, server, enableBookmarking = "server")
