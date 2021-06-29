@@ -947,9 +947,9 @@ server <- function(input, output, session) {
   
   react_ts <- reactive({
     bsearchtools::DFI.subset(timeseries_dfi,
-               AND(RG("DATUM",
-                  input$dateRange[1], input$dateRange[2]), 
-               IN("ISIN_KOD", as.character(res_mod()$ISIN_KOD)))) %>%
+                             AND(RG("DATUM",
+                                    input$dateRange[1], input$dateRange[2]), 
+                                 IN("ISIN_KOD", as.character(res_mod()$ISIN_KOD)))) %>%
       select(ISIN_KOD,!!!input$valuevalaszt, DATUM)
     
   })
@@ -975,7 +975,7 @@ server <- function(input, output, session) {
   #########################kerdes: csinalhatnam azt hogy az elejen mergelem az egeszet, igy utolag mar nem kell uj mergelest csinalni csak selectet
   
   #merge abra_df (mergelem a kategoria szukseges oszlopat a timeseries oszlopokkal),
-  #ha datum a tengely, akkor itt ne válassza ki mégegyszer, mert akkor egy uresre kicserelne
+  #ha datum a tengely, akkor itt ne vÃ¡lassza ki mÃ©gegyszer, mert akkor egy uresre kicserelne
   #a mar kivalasztott datum oszlopot, ezert van az ifelse elagazas
   abra_df_react_dates_df_nelkul <- reactive({
     merge(
@@ -994,8 +994,8 @@ server <- function(input, output, session) {
   
   
   
-  #  #nem összevonos eseten: hozzaadom a datum oszlopot (ha napit ad hozzá, akor csak siman a datumot adom hozza, kuonben meg azt az oszlopot amit kivalaszt: utolso het, utolso honap stb)
-  #osszevonos: kiválasztja currentyear, currentweek megfelelo oszlopot
+  #  #nem Ã¶sszevonos eseten: hozzaadom a datum oszlopot (ha napit ad hozzÃ¡, akor csak siman a datumot adom hozza, kuonben meg azt az oszlopot amit kivalaszt: utolso het, utolso honap stb)
+  #osszevonos: kivÃ¡lasztja currentyear, currentweek megfelelo oszlopot
   abra_df_react_non_grouped <- reactive({
     if (input$datumagr == FALSE)  {
       #ha nem osszevonos
@@ -1028,7 +1028,86 @@ server <- function(input, output, session) {
   
   
   
-  #fuggveny, ami csinal group by tablat, amit majd összegzo fuggveny input alapjan hasznalunk
+  #fuggveny, ami csinal group by tablat, amit majd Ã¶sszegzo fuggveny input alapjan hasznalunk
+  group_data <- function(df, y, x, fill, fv, d_osszevont) {
+    fv <- get(fv)
+    if (input$datumagr == FALSE) {
+      df2 <- as.data.frame(
+        df %>% select(y, x, fill) %>%
+          group_by(get(x), get(fill)) %>%
+          dplyr::summarise(sumArfolyam = fv(get(y)))
+      )
+      df2 <- as.data.frame(df2)
+      colnames(df2) <- if (x == fill) {
+        c(x, paste(x, "2"), y)
+      } else {
+        c(x, fill, y)
+      }
+    } else {
+      df2 <- as.data.frame(
+        df %>% select(y, d_osszevont, fill) %>%
+          group_by(get(d_osszevont), get(fill)) %>%
+          dplyr::summarise(sumArfolyam = fv(get(y)))
+      )
+      df2 <- as.data.frame(df2)
+      
+      colnames(df2) <- c(d_osszevont, fill, y)
+      
+    }
+    return(df2)
+  }
+  
+  
+  #alkalmazom a group_data fuggvenyt
+  abra_df_react <-
+    reactive({
+      group_data(
+        abra_df_react_non_grouped(),
+        as.character(input$valuevalaszt),
+        as.character(input$tengelyvalaszt),
+        as.character(input$kategoriavalaszt),
+        fv = input$osszegzofv,
+        d_osszevont = as.character(input$osszevontdatumsz)
+      )
+    })
+  
+  
+  #  #nem Ã¶sszevonos eseten: hozzaadom a datum oszlopot (ha napit ad hozzÃ¡, akor csak siman a datumot adom hozza, kuonben meg azt az oszlopot amit kivalaszt: utolso het, utolso honap stb)
+  #osszevonos: kivÃ¡lasztja currentyear, currentweek megfelelo oszlopot
+  abra_df_react_non_grouped <- reactive({
+    if (input$datumagr == FALSE)  {
+      #ha nem osszevonos
+      if (input$datumszuro != "Napi") {
+        merge(
+          abra_df_react_dates_df_nelkul(),
+          dates_df %>%
+            select(DATUM, which(
+              colnames(dates_df) == input$datumszuro
+            )),
+          by = "DATUM",
+          all.x = TRUE,
+          all.y = FALSE
+        ) %>%
+          filter(get(colnames(dates_df)[which(colnames(dates_df) == input$datumszuro)]) ==
+                   1)
+      } else {
+        abra_df_react_dates_df_nelkul()
+      }
+    } else {
+      #ha osszevonos
+      merge(abra_df_react_dates_df_nelkul(),
+            dates_df %>%
+              select(DATUM, which(
+                colnames(dates_df) == input$osszevontdatumsz
+              )))
+    }
+  })
+  
+  
+  
+  
+  
+  #fuggveny, ami csinal group by tablat, amit majd Ã¶sszegzo fuggveny input alapjan hasznalunk
   group_data <- function(df, y, x, fill, fv, d_osszevont) {
     fv <- get(fv)
     if (input$datumagr == FALSE) {
@@ -1579,11 +1658,7 @@ server <- function(input, output, session) {
     
   }
   
-  
-  
-  
-  
-  
+ 
   legend_orientation <-
     function(input_orientation, input_legend_align) {
       position <-
@@ -1595,7 +1670,8 @@ server <- function(input, output, session) {
     }
   
   
-  
+  #final chart: visszaadja az elkészült plotlyt bekéri, hogy milyen fajta chartot akarunk, es azt keri vissza
+  #
   final_chart <- function(chart_type, mode)
   {
     if (chart_type == "bar" & mode == "stack") {
@@ -1618,7 +1694,8 @@ server <- function(input, output, session) {
       proba_plotly(chart_type = "scatter", mode = "line") %>% design()
     }
   }
-  
+  #megnezi, h melyik tabset az aktiv es annak megfeleloen megmondja a downloadhandlernek kesobb, h 
+  #melyiket toltse le, kijeloli gyakorlatilag, h milyen inputot kell megetetni final_charttal
   active_chart <- function() {
     if (input$chart_tabset == "stacked_bar") {
       active_plot <- final_chart(chart_type = "bar", mode = "stack")
@@ -1645,62 +1722,21 @@ server <- function(input, output, session) {
     
     return(active_plot)
   }
+ 
+  rendered_active_chart <- plotly::renderPlotly({ active_chart() })
   
+  output$barplot <- rendered_active_chart
+  output$barplotclust <- rendered_active_chart
+  output$savplot <- rendered_active_chart
+  output$savplotclust <- rendered_active_chart
+  output$pointplot <- rendered_active_chart
+  output$areaplot <- rendered_active_chart
+  output$lineplot <- rendered_active_chart
+  output$pieplot <- rendered_active_chart
+  output$donutplot <- rendered_active_chart
+
   
-  #bar output
-  output$barplot <- plotly::renderPlotly({
-    final_chart(chart_type = "bar", mode = "stack")
-  })
-  
-  
-  
-  #clustered
-  output$barplotclust <- plotly::renderPlotly({
-    final_chart(chart_type = "bar", mode = "group")
-    #plot_fuggveny()+geom_bar(position="dodge", stat="identity")
-  })
-  
-  
-  #savdiagram
-  output$savplot <- plotly::renderPlotly({
-    final_chart(chart_type = "sav", mode = "stack")
-    #plot_fuggveny()+geom_col()+coord_flip()
-  })
-  
-  #savdiagram clust
-  output$savplotclust <- plotly::renderPlotly({
-    final_chart(chart_type = "sav", mode = "group")
-    #plot_fuggveny()+geom_col(position="dodge", stat="identity")+coord_flip()
-  })
-  
-  
-  #point output
-  output$pointplot <- plotly::renderPlotly({
-    final_chart(chart_type = "scatter", mode = "marker")
-  })
-  
-  #area output
-  output$areaplot <- plotly::renderPlotly({
-    final_chart(chart_type = "scatter", mode = "area")
-  })
-  
-  #line output
-  output$lineplot <- plotly::renderPlotly({
-    final_chart(chart_type = "scatter", mode = "line")
-  })
-  
-  #pie output
-  output$pieplot <- plotly::renderPlotly({
-    final_chart(chart_type = "pie", mode = "base")
-  })
-  
-  #donut output
-  output$donutplot <- plotly::renderPlotly({
-    final_chart(chart_type = "pie", mode = "donut")
-  })
-  
-  
-  
+
   #TREEMAP
   output$treemapplot <- renderPlot({
     ggplot(abra_df_react(),
